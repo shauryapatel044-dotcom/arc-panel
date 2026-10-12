@@ -1,0 +1,19 @@
+{
+  "id": "minecraft-velocity",
+  "name": "Minecraft: Velocity Proxy",
+  "description": "Next-generation PaperMC Velocity proxy network for linking multiple Minecraft servers (auto-installs protected server.jar & auto-starts)",
+  "dockerImage": "itzg/mc-proxy:latest",
+  "defaultPorts": [{ "container": 25565, "protocol": "tcp" }],
+  "defaultEnv": {
+    "TYPE": "VELOCITY",
+    "VERSION": "3.4.0-SNAPSHOT",
+    "MEMORY": "1G",
+    "AUTO_START": "true"
+  },
+  "versions": ["3.4.0-SNAPSHOT", "3.3.0-SNAPSHOT", "3.2.0-SNAPSHOT"],
+  "stopCommand": "shutdown",
+  "startupCommand": "java -Xms512M -Xmx1024M -jar server.jar",
+  "minMemoryMB": 512,
+  "recommendedMemoryMB": 1024,
+  "category": "gaming"
+}

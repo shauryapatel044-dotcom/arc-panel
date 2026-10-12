@@ -1,0 +1,89 @@
+{
+  "id": "python",
+  "name": "Python Application",
+  "description": "Run any Python 3 application or bot inside an isolated Docker container. Supports pip packages via requirements.txt. Suitable for Discord bots, web scrapers, automation scripts, Flask/FastAPI web servers, and more.",
+  "author": "Arc Panel",
+  "version": "1.0.0",
+  "dockerImage": "python:3.12-slim",
+  "dockerImageAlternatives": [
+    "python:3.11-slim",
+    "python:3.10-slim",
+    "python:3.12-alpine"
+  ],
+  "defaultPorts": [
+    {
+      "container": 8000,
+      "protocol": "tcp",
+      "description": "Application HTTP port (if applicable)"
+    }
+  ],
+  "defaultEnv": {
+    "MAIN_FILE": "main.py",
+    "PYTHON_VERSION": "3.12",
+    "PIP_REQUIREMENTS": "requirements.txt",
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TZ": "UTC"
+  },
+  "envVariableDefinitions": [
+    {
+      "key": "MAIN_FILE",
+      "name": "Main Python File",
+      "description": "The entry point Python file to execute (relative to the server root).",
+      "type": "string",
+      "required": true,
+      "default": "main.py"
+    },
+    {
+      "key": "PIP_REQUIREMENTS",
+      "name": "Requirements File",
+      "description": "Path to requirements.txt file for pip package installation.",
+      "type": "string",
+      "required": false,
+      "default": "requirements.txt"
+    },
+    {
+      "key": "PYTHONUNBUFFERED",
+      "name": "Unbuffered Output",
+      "description": "Set to 1 to see real-time Python output in the console.",
+      "type": "boolean",
+      "required": false,
+      "locked": true,
+      "default": "1"
+    },
+    {
+      "key": "TZ",
+      "name": "Timezone",
+      "description": "Timezone for the container (e.g., UTC, America/New_York, Europe/London).",
+      "type": "string",
+      "required": false,
+      "default": "UTC"
+    }
+  ],
+  "startupCommand": "pip install -r ${PIP_REQUIREMENTS} --quiet --no-cache-dir 2>/dev/null || true && python ${MAIN_FILE}",
+  "stopCommand": "",
+  "configFiles": [
+    {
+      "path": "requirements.txt",
+      "description": "Python package dependencies."
+    },
+    {
+      "path": "main.py",
+      "description": "Main application entry point."
+    },
+    {
+      "path": ".env",
+      "description": "Application environment variables."
+    }
+  ],
+  "minMemoryMB": 128,
+  "recommendedMemoryMB": 512,
+  "minDiskMB": 512,
+  "recommendedDiskMB": 2048,
+  "minCpuPercent": 10,
+  "recommendedCpuPercent": 50,
+  "category": "application",
+  "tags": ["python", "bot", "web", "flask", "fastapi", "discord"],
+  "website": "https://python.org",
+  "supportUrl": "https://discord.gg/arc-panel"
+}

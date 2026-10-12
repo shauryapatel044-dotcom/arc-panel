@@ -1,0 +1,144 @@
+{
+  "id": "rust",
+  "name": "Rust Dedicated Server",
+  "description": "Rust is a multiplayer-only survival game. Players start with nothing and must gather resources, craft items, and build bases to survive. Uses the didstopia/rust-server Docker image which handles SteamCMD downloads and updates automatically.",
+  "author": "Arc Panel",
+  "version": "1.0.0",
+  "dockerImage": "didstopia/rust-server:latest",
+  "dockerImageAlternatives": [],
+  "defaultPorts": [
+    {
+      "container": 28015,
+      "protocol": "udp",
+      "description": "Game port"
+    },
+    {
+      "container": 28015,
+      "protocol": "tcp",
+      "description": "Game port (TCP)"
+    },
+    {
+      "container": 28016,
+      "protocol": "tcp",
+      "description": "RCON port"
+    },
+    {
+      "container": 28082,
+      "protocol": "tcp",
+      "description": "App port (Rust+ companion app)"
+    }
+  ],
+  "defaultEnv": {
+    "RUST_SERVER_STARTUP_ARGUMENTS": "-batchmode -load -nographics +server.secure 1",
+    "RUST_SERVER_IDENTITY": "arc-panel",
+    "RUST_SERVER_SEED": "12345",
+    "RUST_SERVER_WORLDSIZE": "3000",
+    "RUST_SERVER_NAME": "Arc Panel Rust Server",
+    "RUST_SERVER_DESCRIPTION": "Powered by Arc Panel",
+    "RUST_SERVER_URL": "",
+    "RUST_SERVER_BANNER_URL": "",
+    "RUST_SERVER_MAXPLAYERS": "50",
+    "RUST_SERVER_PORT": "28015",
+    "RUST_RCON_PORT": "28016",
+    "RUST_RCON_PASSWORD": "changeme_rcon_password",
+    "RUST_RCON_WEB": "1",
+    "RUST_APP_PORT": "28082",
+    "RUST_UPDATE_ON_START": "1",
+    "RUST_START_MODE": "0",
+    "RUST_OXIDE_ENABLED": "0",
+    "RUST_OXIDE_UPDATE_ON_BOOT": "1",
+    "TZ": "UTC"
+  },
+  "envVariableDefinitions": [
+    {
+      "key": "RUST_SERVER_NAME",
+      "name": "Server Name",
+      "description": "The name displayed in the Rust server browser.",
+      "type": "string",
+      "required": true,
+      "default": "Arc Panel Rust Server"
+    },
+    {
+      "key": "RUST_SERVER_DESCRIPTION",
+      "name": "Server Description",
+      "description": "Short description shown in the server browser.",
+      "type": "string",
+      "required": false,
+      "default": "Powered by Arc Panel"
+    },
+    {
+      "key": "RUST_SERVER_MAXPLAYERS",
+      "name": "Max Players",
+      "description": "Maximum number of concurrent players.",
+      "type": "number",
+      "required": false,
+      "default": "50",
+      "min": 1,
+      "max": 500
+    },
+    {
+      "key": "RUST_SERVER_SEED",
+      "name": "World Seed",
+      "description": "Procedural map generation seed (integer).",
+      "type": "number",
+      "required": false,
+      "default": "12345"
+    },
+    {
+      "key": "RUST_SERVER_WORLDSIZE",
+      "name": "World Size",
+      "description": "Map size in metres. Smaller = faster to generate, larger = more exploration.",
+      "type": "number",
+      "required": false,
+      "default": "3000",
+      "min": 1000,
+      "max": 6000
+    },
+    {
+      "key": "RUST_RCON_PASSWORD",
+      "name": "RCON Password",
+      "description": "Password for remote console access (Rustadmin, RCON.io, etc.).",
+      "type": "string",
+      "required": true,
+      "default": "changeme_rcon_password"
+    },
+    {
+      "key": "RUST_OXIDE_ENABLED",
+      "name": "Enable Oxide/uMod",
+      "description": "Install and enable the Oxide modding framework for plugin support.",
+      "type": "boolean",
+      "required": false,
+      "default": "0"
+    },
+    {
+      "key": "RUST_UPDATE_ON_START",
+      "name": "Auto-Update on Start",
+      "description": "Automatically update Rust server on each container start.",
+      "type": "boolean",
+      "required": false,
+      "default": "1"
+    }
+  ],
+  "stopCommand": "quit",
+  "startupCommand": "",
+  "configFiles": [
+    {
+      "path": "server/arc-panel/cfg/server.cfg",
+      "description": "Main server configuration file."
+    },
+    {
+      "path": "server/arc-panel/cfg/users.cfg",
+      "description": "User permissions file."
+    }
+  ],
+  "minMemoryMB": 4096,
+  "recommendedMemoryMB": 8192,
+  "minDiskMB": 10240,
+  "recommendedDiskMB": 30720,
+  "minCpuPercent": 200,
+  "recommendedCpuPercent": 400,
+  "category": "gaming",
+  "tags": ["rust", "survival", "fps", "crafting", "pvp", "oxide", "umod"],
+  "website": "https://rust.facepunch.com",
+  "supportUrl": "https://discord.gg/arc-panel"
+}

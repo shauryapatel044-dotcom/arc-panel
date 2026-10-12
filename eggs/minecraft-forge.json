@@ -1,0 +1,20 @@
+{
+  "id": "minecraft-forge",
+  "name": "Minecraft: Forge Modded",
+  "description": "Classic Minecraft Forge loader for large kitchen-sink & tech modpacks (auto-installs protected server.jar & auto-starts)",
+  "dockerImage": "itzg/minecraft-server:latest",
+  "defaultPorts": [{ "container": 25565, "protocol": "tcp" }],
+  "defaultEnv": {
+    "EULA": "TRUE",
+    "TYPE": "FORGE",
+    "VERSION": "1.20.1",
+    "MEMORY": "6G",
+    "AUTO_START": "true"
+  },
+  "versions": ["1.21.4", "1.21.1", "1.20.6", "1.20.4", "1.20.1", "1.19.4", "1.19.2", "1.18.2", "1.16.5", "1.12.2", "1.7.10"],
+  "stopCommand": "stop",
+  "startupCommand": "java -Xms128M -Xmx6144M -jar server.jar nogui",
+  "minMemoryMB": 2048,
+  "recommendedMemoryMB": 6144,
+  "category": "gaming"
+}

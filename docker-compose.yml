@@ -1,0 +1,294 @@
+# =============================================================================
+#  Arc Panel — Docker Compose Deployment
+#  Version: 1.0.0
+#
+#  Usage:
+#    cp .env.example .env      # then fill in your values
+#    docker compose up -d
+#
+#  Services:
+#    - panel    : Next.js frontend        → port 8080
+#    - backend  : Node.js/Express API     → port 3001
+#    - daemon   : Game server daemon      → ports 8085, 2022
+#    - mariadb  : MariaDB database        → internal only
+# =============================================================================
+
+services:
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # MariaDB — Relational Database (internal network only)
+  # ─────────────────────────────────────────────────────────────────────────
+  mariadb:
+    image: mariadb:11.4
+    container_name: arc-panel-mariadb
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD:        ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE:             ${DB_NAME:-arcpanel}
+      MYSQL_USER:                 ${DB_USER:-arcpanel}
+      MYSQL_PASSWORD:             ${DB_PASSWORD}
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER:     utf8mb4_unicode_ci
+
+    volumes:
+      # Persistent database storage
+      - mariadb_data:/var/lib/mysql
+      # Custom MariaDB configuration
+      - ./docker/mariadb/my.cnf:/etc/mysql/conf.d/arc-panel.cnf:ro
+
+    networks:
+      - arc-network
+
+    # MariaDB should NOT be exposed externally
+    # Uncomment below ONLY for development debugging:
+    # ports:
+    #   - "127.0.0.1:3306:3306"
+
+    healthcheck:
+      test:
+        - CMD
+        - healthcheck.sh
+        - "--connect"
+        - "--innodb_initialized"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Backend — Node.js / Express / Prisma API Server
+  # ─────────────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    image: arc-panel/backend:latest
+    container_name: arc-panel-backend
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      daemon:
+        condition: service_healthy
+
+    environment:
+      NODE_ENV:              production
+      PORT:                  3001
+      HOST:                  0.0.0.0
+      # Database (connects to mariadb service via internal network)
+      DATABASE_URL:          mysql://${DB_USER:-arcpanel}:${DB_PASSWORD}@mariadb:3306/${DB_NAME:-arcpanel}
+      DB_HOST:               mariadb
+      DB_PORT:               3306
+      DB_NAME:               ${DB_NAME:-arcpanel}
+      DB_USER:               ${DB_USER:-arcpanel}
+      DB_PASSWORD:           ${DB_PASSWORD}
+      # Authentication
+      JWT_SECRET:            ${JWT_SECRET}
+      JWT_REFRESH_SECRET:    ${JWT_REFRESH_SECRET}
+      JWT_EXPIRES_IN:        ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      # Daemon connectivity
+      DAEMON_DEFAULT_URL:    http://daemon:8085
+      DAEMON_TOKEN:          ${DAEMON_TOKEN}
+      # CORS
+      CORS_ORIGINS:          ${CORS_ORIGINS:-http://localhost:8080}
+      # Logging
+      LOG_LEVEL:             ${LOG_LEVEL:-info}
+
+    ports:
+      - "${BACKEND_BIND:-0.0.0.0}:${BACKEND_PORT:-3001}:3001"
+
+    volumes:
+      # Backend logs
+      - ./logs/backend:/var/log/arc-panel
+
+    networks:
+      - arc-network
+
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:3001/api/health
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Daemon — Game Server Daemon (manages Docker containers for game servers)
+  # ─────────────────────────────────────────────────────────────────────────
+  daemon:
+    build:
+      context: ./daemon
+      dockerfile: Dockerfile
+      target: production
+    image: arc-panel/daemon:latest
+    container_name: arc-panel-daemon
+    restart: unless-stopped
+
+    environment:
+      NODE_ENV:      production
+      DAEMON_PORT:   8085
+      SFTP_PORT:     2022
+      DAEMON_TOKEN:  ${DAEMON_TOKEN}
+      DATA_DIR:      /data/servers
+      BACKUP_DIR:    /data/backups
+      LOG_LEVEL:     ${LOG_LEVEL:-info}
+
+    ports:
+      # Daemon REST/WebSocket API
+      - "${DAEMON_BIND:-0.0.0.0}:${DAEMON_PORT:-8085}:8085"
+      # SFTP for game server file management
+      - "${SFTP_BIND:-0.0.0.0}:${SFTP_PORT:-2022}:2022"
+
+    volumes:
+      # Docker socket — required for daemon to manage containers
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Persistent game server data
+      - server_data:/data/servers
+      # Persistent backup storage
+      - backup_data:/data/backups
+      # Daemon logs
+      - ./logs/daemon:/var/log/arc-panel
+
+    networks:
+      - arc-network
+
+    # Daemon needs host network access to manage game server containers
+    # and needs privileged access to docker.sock
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8085/api/health
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 64M
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Panel — Next.js Frontend (standalone mode)
+  # ─────────────────────────────────────────────────────────────────────────
+  panel:
+    build:
+      context: ./panel
+      dockerfile: Dockerfile
+      target: production
+      args:
+        # These are baked into the Next.js bundle at build time
+        NEXT_PUBLIC_API_URL:        ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+        NEXT_PUBLIC_DAEMON_WS_URL:  ${NEXT_PUBLIC_DAEMON_WS_URL:-ws://localhost:8085}
+        NEXT_PUBLIC_DAEMON_URL:     ${NEXT_PUBLIC_DAEMON_URL:-http://localhost:8085}
+    image: arc-panel/panel:latest
+    container_name: arc-panel-panel
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+
+    environment:
+      NODE_ENV:  production
+      PORT:      8080
+      HOSTNAME:  0.0.0.0
+      # Runtime env vars for SSR
+      NEXT_PUBLIC_API_URL:        ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      NEXT_PUBLIC_DAEMON_WS_URL:  ${NEXT_PUBLIC_DAEMON_WS_URL:-ws://localhost:8085}
+      NEXT_PUBLIC_DAEMON_URL:     ${NEXT_PUBLIC_DAEMON_URL:-http://localhost:8085}
+
+    ports:
+      - "${PANEL_BIND:-0.0.0.0}:${PANEL_PORT:-8080}:8080"
+
+    volumes:
+      # Frontend logs
+      - ./logs/panel:/var/log/arc-panel
+
+    networks:
+      - arc-network
+
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8080
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+
+# =============================================================================
+# Named Volumes
+# =============================================================================
+volumes:
+  # MariaDB data directory — persists database across container restarts
+  mariadb_data:
+    driver: local
+    driver_opts:
+      type:   none
+      o:      bind
+      device: ${DATA_BASE_PATH:-./data}/mariadb
+
+  # Game server installation files
+  server_data:
+    driver: local
+    driver_opts:
+      type:   none
+      o:      bind
+      device: ${DATA_BASE_PATH:-./data}/servers
+
+  # Backup archives
+  backup_data:
+    driver: local
+    driver_opts:
+      type:   none
+      o:      bind
+      device: ${DATA_BASE_PATH:-./data}/backups
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  # Internal bridge network — all services communicate here
+  arc-network:
+    driver: bridge
+    name:   arc-network
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

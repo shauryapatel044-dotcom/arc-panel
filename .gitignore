@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+*/node_modules/
+package-lock.json
+*/package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Next.js & TypeScript build outputs
+.next/
+*/.next/
+dist/
+*/dist/
+out/
+build/
+*.tsbuildinfo
+*/*.tsbuildinfo
+next-env.d.ts
+*/next-env.d.ts
+
+# Environment & local secrets (generated automatically by install.sh)
+.env
+.env.local
+.env.production
+*/.env
+*/.env.local
+*/.env.production
+
+# Local runtime workspaces, databases & logs
+.data/
+*/.data/
+data/
+*/data/
+*.log
+npm-debug.log*
+
+# OS & Archive files
+.DS_Store
+Thumbs.db
+*.zip

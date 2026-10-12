@@ -1,0 +1,150 @@
+{
+  "id": "minecraft-java",
+  "name": "Minecraft Java Edition",
+  "description": "The original Minecraft Java Edition dedicated server. Supports vanilla, Paper, Spigot, Forge, Fabric, and many more server types via the EULA-compliant itzg/minecraft-server Docker image. Includes automatic server JAR download and update management.",
+  "author": "Arc Panel",
+  "version": "1.0.0",
+  "dockerImage": "itzg/minecraft-server:latest",
+  "dockerImageAlternatives": [
+    "itzg/minecraft-server:java21",
+    "itzg/minecraft-server:java17",
+    "itzg/minecraft-server:java11"
+  ],
+  "defaultPorts": [
+    {
+      "container": 25565,
+      "protocol": "tcp",
+      "description": "Game / Query port"
+    },
+    {
+      "container": 25575,
+      "protocol": "tcp",
+      "description": "RCON (optional)"
+    }
+  ],
+  "defaultEnv": {
+    "EULA": "TRUE",
+    "TYPE": "VANILLA",
+    "VERSION": "LATEST",
+    "MEMORY": "2G",
+    "MAX_PLAYERS": "20",
+    "DIFFICULTY": "normal",
+    "GAMEMODE": "survival",
+    "MOTD": "A Minecraft Server powered by Arc Panel",
+    "ONLINE_MODE": "TRUE",
+    "ENABLE_RCON": "false",
+    "VIEW_DISTANCE": "10",
+    "SIMULATION_DISTANCE": "10",
+    "MAX_WORLD_SIZE": "10000",
+    "ALLOW_NETHER": "true",
+    "SPAWN_ANIMALS": "true",
+    "SPAWN_MONSTERS": "true",
+    "SPAWN_NPCS": "true",
+    "PVP": "true",
+    "LEVEL": "world",
+    "LEVEL_TYPE": "minecraft:default",
+    "SERVER_NAME": "Arc Panel Server"
+  },
+  "envVariableDefinitions": [
+    {
+      "key": "EULA",
+      "name": "Accept EULA",
+      "description": "Must be TRUE to agree to Minecraft's End User License Agreement.",
+      "type": "boolean",
+      "required": true,
+      "locked": true,
+      "default": "TRUE"
+    },
+    {
+      "key": "TYPE",
+      "name": "Server Type",
+      "description": "The type of Minecraft server to run.",
+      "type": "select",
+      "required": true,
+      "options": ["VANILLA", "PAPER", "SPIGOT", "BUKKIT", "FORGE", "FABRIC", "QUILT", "PURPUR"],
+      "default": "VANILLA"
+    },
+    {
+      "key": "VERSION",
+      "name": "Minecraft Version",
+      "description": "The Minecraft version to use. Use LATEST for the most recent stable release.",
+      "type": "string",
+      "required": true,
+      "default": "LATEST"
+    },
+    {
+      "key": "MEMORY",
+      "name": "JVM Memory",
+      "description": "Memory allocated to the JVM heap (e.g., 1G, 2G, 4G). This should be less than the container memory limit.",
+      "type": "string",
+      "required": true,
+      "default": "2G"
+    },
+    {
+      "key": "MAX_PLAYERS",
+      "name": "Max Players",
+      "description": "Maximum number of players allowed on the server.",
+      "type": "number",
+      "required": false,
+      "default": "20",
+      "min": 1,
+      "max": 1000
+    },
+    {
+      "key": "DIFFICULTY",
+      "name": "Difficulty",
+      "description": "Game difficulty level.",
+      "type": "select",
+      "required": false,
+      "options": ["peaceful", "easy", "normal", "hard"],
+      "default": "normal"
+    },
+    {
+      "key": "GAMEMODE",
+      "name": "Default Game Mode",
+      "description": "Default game mode for new players.",
+      "type": "select",
+      "required": false,
+      "options": ["survival", "creative", "adventure", "spectator"],
+      "default": "survival"
+    },
+    {
+      "key": "ONLINE_MODE",
+      "name": "Online Mode",
+      "description": "Enable to require players authenticate with Mojang. Disable for offline/cracked servers.",
+      "type": "boolean",
+      "required": false,
+      "default": "TRUE"
+    }
+  ],
+  "stopCommand": "stop",
+  "startupCommand": "",
+  "configFiles": [
+    {
+      "path": "server.properties",
+      "description": "Main Minecraft server configuration file."
+    },
+    {
+      "path": "ops.json",
+      "description": "List of server operators (admins)."
+    },
+    {
+      "path": "whitelist.json",
+      "description": "Player whitelist (if whitelist is enabled)."
+    },
+    {
+      "path": "banned-players.json",
+      "description": "List of banned players."
+    }
+  ],
+  "minMemoryMB": 1024,
+  "recommendedMemoryMB": 2048,
+  "minDiskMB": 2048,
+  "recommendedDiskMB": 10240,
+  "minCpuPercent": 50,
+  "recommendedCpuPercent": 100,
+  "category": "gaming",
+  "tags": ["minecraft", "java", "vanilla", "paper", "fabric", "forge"],
+  "website": "https://minecraft.net",
+  "supportUrl": "https://discord.gg/arc-panel"
+}

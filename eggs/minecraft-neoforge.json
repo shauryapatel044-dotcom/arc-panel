@@ -1,0 +1,20 @@
+{
+  "id": "minecraft-neoforge",
+  "name": "Minecraft: NeoForge",
+  "description": "Next-generation NeoForge modding platform for modern 1.20.4+ and 1.21+ modpacks (auto-installs protected server.jar & auto-starts)",
+  "dockerImage": "itzg/minecraft-server:latest",
+  "defaultPorts": [{ "container": 25565, "protocol": "tcp" }],
+  "defaultEnv": {
+    "EULA": "TRUE",
+    "TYPE": "NEOFORGE",
+    "VERSION": "1.21.4",
+    "MEMORY": "6G",
+    "AUTO_START": "true"
+  },
+  "versions": ["1.21.4", "1.21.3", "1.21.1", "1.20.6", "1.20.4", "1.20.2"],
+  "stopCommand": "stop",
+  "startupCommand": "java -Xms128M -Xmx6144M -jar server.jar nogui",
+  "minMemoryMB": 2048,
+  "recommendedMemoryMB": 6144,
+  "category": "gaming"
+}

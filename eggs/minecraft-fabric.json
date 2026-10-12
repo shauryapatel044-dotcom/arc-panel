@@ -1,0 +1,20 @@
+{
+  "id": "minecraft-fabric",
+  "name": "Minecraft: Fabric Loader",
+  "description": "Lightweight modular Fabric mod loader for Lithium, Sodium & Cobblemon modpacks (auto-installs protected server.jar & auto-starts)",
+  "dockerImage": "itzg/minecraft-server:latest",
+  "defaultPorts": [{ "container": 25565, "protocol": "tcp" }],
+  "defaultEnv": {
+    "EULA": "TRUE",
+    "TYPE": "FABRIC",
+    "VERSION": "1.21.4",
+    "MEMORY": "4G",
+    "AUTO_START": "true"
+  },
+  "versions": ["1.21.4", "1.21.3", "1.21.1", "1.20.6", "1.20.4", "1.20.1", "1.19.4", "1.19.2", "1.18.2", "1.16.5"],
+  "stopCommand": "stop",
+  "startupCommand": "java -Xms128M -Xmx4096M -jar server.jar nogui",
+  "minMemoryMB": 1024,
+  "recommendedMemoryMB": 4096,
+  "category": "gaming"
+}

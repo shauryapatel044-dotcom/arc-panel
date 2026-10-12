@@ -1,0 +1,110 @@
+{
+  "id": "hytale",
+  "name": "Hytale Server",
+  "description": "Hytale is an upcoming adventure and game creation platform by Hypixel Studios (acquired by Riot Games). This egg provides a forward-compatible placeholder configuration designed to be updated when the Hytale dedicated server is officially released. Uses a Node.js base image as a temporary runtime for pre-release server tooling.",
+  "author": "Arc Panel",
+  "version": "0.1.0",
+  "status": "placeholder",
+  "statusNote": "Hytale dedicated server is not yet publicly released. This egg will be updated upon official server availability. The configuration schema is based on anticipated server architecture.",
+  "dockerImage": "arc-panel/hytale:latest",
+  "dockerImageAlternatives": [
+    "node:20-slim"
+  ],
+  "defaultPorts": [
+    {
+      "container": 25500,
+      "protocol": "tcp",
+      "description": "Game port (anticipated)"
+    },
+    {
+      "container": 25500,
+      "protocol": "udp",
+      "description": "Game port UDP (anticipated)"
+    },
+    {
+      "container": 25501,
+      "protocol": "tcp",
+      "description": "Admin / API port (anticipated)"
+    }
+  ],
+  "defaultEnv": {
+    "SERVER_NAME": "Arc Panel Hytale Server",
+    "SERVER_DESCRIPTION": "A Hytale server powered by Arc Panel",
+    "MAX_PLAYERS": "50",
+    "SERVER_PORT": "25500",
+    "ADMIN_PORT": "25501",
+    "GAME_MODE": "adventure",
+    "WORLD_SEED": "arcpanel",
+    "ALLOW_CHEATS": "false",
+    "WHITELIST_ENABLED": "false",
+    "LOG_LEVEL": "info",
+    "TZ": "UTC"
+  },
+  "envVariableDefinitions": [
+    {
+      "key": "SERVER_NAME",
+      "name": "Server Name",
+      "description": "Display name of the server.",
+      "type": "string",
+      "required": true,
+      "default": "Arc Panel Hytale Server"
+    },
+    {
+      "key": "MAX_PLAYERS",
+      "name": "Max Players",
+      "description": "Maximum concurrent players.",
+      "type": "number",
+      "required": false,
+      "default": "50",
+      "min": 1,
+      "max": 200
+    },
+    {
+      "key": "GAME_MODE",
+      "name": "Game Mode",
+      "description": "Primary game mode (adventure, survival, creative — based on anticipated modes).",
+      "type": "select",
+      "required": false,
+      "options": ["adventure", "survival", "creative"],
+      "default": "adventure"
+    },
+    {
+      "key": "WORLD_SEED",
+      "name": "World Seed",
+      "description": "Seed for procedural world generation.",
+      "type": "string",
+      "required": false,
+      "default": "arcpanel"
+    },
+    {
+      "key": "WHITELIST_ENABLED",
+      "name": "Whitelist",
+      "description": "Restrict server access to whitelisted players only.",
+      "type": "boolean",
+      "required": false,
+      "default": "false"
+    }
+  ],
+  "stopCommand": "stop",
+  "startupCommand": "",
+  "configFiles": [
+    {
+      "path": "server.json",
+      "description": "Main Hytale server configuration (anticipated format)."
+    },
+    {
+      "path": "whitelist.json",
+      "description": "Player whitelist."
+    }
+  ],
+  "minMemoryMB": 2048,
+  "recommendedMemoryMB": 4096,
+  "minDiskMB": 5120,
+  "recommendedDiskMB": 15360,
+  "minCpuPercent": 100,
+  "recommendedCpuPercent": 200,
+  "category": "gaming",
+  "tags": ["hytale", "hypixel", "riot", "adventure", "upcoming", "placeholder"],
+  "website": "https://hytale.com",
+  "supportUrl": "https://discord.gg/arc-panel"
+}

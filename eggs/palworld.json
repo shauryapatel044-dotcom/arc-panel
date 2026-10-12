@@ -1,0 +1,143 @@
+{
+  "id": "palworld",
+  "name": "Palworld Dedicated Server",
+  "description": "Palworld is a multiplayer open-world survival crafting game featuring creature-collecting (Pals). This egg uses the jammsen/palworld-dedicated-server image for easy Docker-based deployment. Requires a significant amount of RAM — 16GB recommended for smooth gameplay.",
+  "author": "Arc Panel",
+  "version": "1.0.0",
+  "dockerImage": "jammsen/palworld-dedicated-server:latest",
+  "dockerImageAlternatives": [
+    "thijsvanloef/palworld-server-docker:latest"
+  ],
+  "defaultPorts": [
+    {
+      "container": 8211,
+      "protocol": "udp",
+      "description": "Game port (connect via this port)"
+    },
+    {
+      "container": 27015,
+      "protocol": "udp",
+      "description": "Steam query port"
+    },
+    {
+      "container": 25575,
+      "protocol": "tcp",
+      "description": "RCON port"
+    }
+  ],
+  "defaultEnv": {
+    "ALWAYS_UPDATE_ON_START": "true",
+    "MULTITHREAD_ENABLED": "true",
+    "COMMUNITY_SERVER": "false",
+    "SERVER_NAME": "Arc Panel Palworld Server",
+    "SERVER_DESCRIPTION": "Hosted on Arc Panel",
+    "SERVER_PASSWORD": "",
+    "ADMIN_PASSWORD": "changeme_admin_pw",
+    "MAX_PLAYERS": "32",
+    "SERVER_PORT": "8211",
+    "PUBLIC_PORT": "8211",
+    "PUBLIC_IP": "",
+    "RCON_ENABLED": "false",
+    "RCON_PORT": "25575",
+    "DEATH_PENALTY": "Item",
+    "ENABLE_PLAYER_TO_PLAYER_DAMAGE": "False",
+    "ENABLE_FRIENDLY_FIRE": "False",
+    "PAL_EGG_DEFAULT_HATCHING_TIME": "72.000000",
+    "WORK_SPEED_RATE": "1.000000",
+    "EXP_RATE": "1.000000",
+    "COLLECTION_DROP_RATE": "1.000000",
+    "ENEMY_DROP_ITEM_RATE": "1.000000",
+    "BACKUP_ENABLE": "true",
+    "BACKUP_CRON_EXPRESSION": "0 */4 * * *"
+  },
+  "envVariableDefinitions": [
+    {
+      "key": "SERVER_NAME",
+      "name": "Server Name",
+      "description": "The name displayed in the server browser.",
+      "type": "string",
+      "required": true,
+      "default": "Arc Panel Palworld Server"
+    },
+    {
+      "key": "SERVER_PASSWORD",
+      "name": "Server Password",
+      "description": "Password required to join. Leave empty for public server.",
+      "type": "string",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "ADMIN_PASSWORD",
+      "name": "Admin Password",
+      "description": "Password for server admin access (RCON / in-game admin commands).",
+      "type": "string",
+      "required": true,
+      "default": "changeme_admin_pw"
+    },
+    {
+      "key": "MAX_PLAYERS",
+      "name": "Max Players",
+      "description": "Maximum concurrent players.",
+      "type": "number",
+      "required": false,
+      "default": "32",
+      "min": 1,
+      "max": 32
+    },
+    {
+      "key": "COMMUNITY_SERVER",
+      "name": "Community Server",
+      "description": "List this server on the community server browser.",
+      "type": "boolean",
+      "required": false,
+      "default": "false"
+    },
+    {
+      "key": "MULTITHREAD_ENABLED",
+      "name": "Multithreading",
+      "description": "Enable experimental multithreading for better performance.",
+      "type": "boolean",
+      "required": false,
+      "default": "true"
+    },
+    {
+      "key": "EXP_RATE",
+      "name": "Experience Rate",
+      "description": "Multiplier for player and Pal experience gain.",
+      "type": "number",
+      "required": false,
+      "default": "1.000000",
+      "min": 0.1,
+      "max": 20
+    },
+    {
+      "key": "WORK_SPEED_RATE",
+      "name": "Work Speed Rate",
+      "description": "Multiplier for Pal work speed.",
+      "type": "number",
+      "required": false,
+      "default": "1.000000",
+      "min": 0.1,
+      "max": 10
+    }
+  ],
+  "stopCommand": "Shutdown",
+  "startupCommand": "",
+  "configFiles": [
+    {
+      "path": "Pal/Saved/Config/LinuxServer/PalWorldSettings.ini",
+      "description": "Main Palworld server settings file."
+    }
+  ],
+  "minMemoryMB": 8192,
+  "recommendedMemoryMB": 16384,
+  "minDiskMB": 10240,
+  "recommendedDiskMB": 30720,
+  "minCpuPercent": 200,
+  "recommendedCpuPercent": 400,
+  "category": "gaming",
+  "tags": ["palworld", "survival", "crafting", "creature", "open-world"],
+  "website": "https://www.pocketpair.jp/palworld",
+  "supportUrl": "https://discord.gg/arc-panel"
+}

@@ -1,0 +1,154 @@
+{
+  "id": "cs2",
+  "name": "Counter-Strike 2",
+  "description": "Counter-Strike 2 (CS2) dedicated server using the official SteamCMD-based cm2network/cs2 image. Supports competitive, casual, deathmatch, and custom workshop maps. Requires a free Steam account or anonymous SteamCMD login.",
+  "author": "Arc Panel",
+  "version": "1.0.0",
+  "dockerImage": "cm2network/cs2:latest",
+  "dockerImageAlternatives": [],
+  "defaultPorts": [
+    {
+      "container": 27015,
+      "protocol": "tcp",
+      "description": "Game and RCON port"
+    },
+    {
+      "container": 27015,
+      "protocol": "udp",
+      "description": "Game port (UDP)"
+    },
+    {
+      "container": 27020,
+      "protocol": "udp",
+      "description": "SourceTV / GOTV"
+    }
+  ],
+  "defaultEnv": {
+    "STEAMAPPID": "730",
+    "CS2_SERVERNAME": "Arc Panel CS2 Server",
+    "CS2_CHEATS": "0",
+    "CS2_PORT": "27015",
+    "CS2_TV_PORT": "27020",
+    "CS2_MAXPLAYERS": "16",
+    "CS2_LOG": "on",
+    "CS2_LOG_MONEY": "0",
+    "CS2_LOG_DETAIL": "0",
+    "CS2_LOG_ITEMS": "0",
+    "CS2_MAPGROUP": "mg_active",
+    "CS2_STARTMAP": "de_dust2",
+    "CS2_GAMETYPE": "0",
+    "CS2_GAMEMODE": "1",
+    "CS2_RCON_PORT": "27015",
+    "CS2_RCONPW": "changeme_rcon_pw",
+    "CS2_PW": "",
+    "CS2_BOT_DIFFICULTY": "0",
+    "CS2_BOT_QUOTA": "0",
+    "CS2_BOT_QUOTA_MODE": "fill",
+    "STEAMUSER": "anonymous",
+    "STEAMPASSWORD": ""
+  },
+  "envVariableDefinitions": [
+    {
+      "key": "CS2_SERVERNAME",
+      "name": "Server Name",
+      "description": "The name shown in the server browser and scoreboard.",
+      "type": "string",
+      "required": true,
+      "default": "Arc Panel CS2 Server"
+    },
+    {
+      "key": "CS2_MAXPLAYERS",
+      "name": "Max Players",
+      "description": "Maximum number of players (including bots).",
+      "type": "number",
+      "required": false,
+      "default": "16",
+      "min": 2,
+      "max": 64
+    },
+    {
+      "key": "CS2_RCONPW",
+      "name": "RCON Password",
+      "description": "Remote console password for server administration.",
+      "type": "string",
+      "required": true,
+      "default": "changeme_rcon_pw"
+    },
+    {
+      "key": "CS2_PW",
+      "name": "Server Password",
+      "description": "Password required to join. Leave empty for public server.",
+      "type": "string",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "CS2_GAMETYPE",
+      "name": "Game Type",
+      "description": "Game type (0=Casual/Competitive, 1=Deathmatch, 2=Training).",
+      "type": "number",
+      "required": false,
+      "default": "0",
+      "min": 0,
+      "max": 6
+    },
+    {
+      "key": "CS2_GAMEMODE",
+      "name": "Game Mode",
+      "description": "Game mode within the selected game type (1=Competitive when GAMETYPE=0).",
+      "type": "number",
+      "required": false,
+      "default": "1",
+      "min": 0,
+      "max": 2
+    },
+    {
+      "key": "CS2_STARTMAP",
+      "name": "Start Map",
+      "description": "Map to load on server start (e.g., de_dust2, de_mirage, de_inferno).",
+      "type": "string",
+      "required": false,
+      "default": "de_dust2"
+    },
+    {
+      "key": "CS2_BOT_QUOTA",
+      "name": "Bot Count",
+      "description": "Number of bots to add (0 = no bots).",
+      "type": "number",
+      "required": false,
+      "default": "0",
+      "min": 0,
+      "max": 32
+    },
+    {
+      "key": "CS2_CHEATS",
+      "name": "sv_cheats",
+      "description": "Enable server-side cheats (0 = off, 1 = on). Only use for practice servers.",
+      "type": "boolean",
+      "required": false,
+      "default": "0"
+    }
+  ],
+  "stopCommand": "quit",
+  "startupCommand": "",
+  "configFiles": [
+    {
+      "path": "game/csgo/cfg/server.cfg",
+      "description": "Main CS2 server configuration."
+    },
+    {
+      "path": "game/csgo/cfg/gamemode_competitive.cfg",
+      "description": "Competitive mode overrides."
+    }
+  ],
+  "minMemoryMB": 2048,
+  "recommendedMemoryMB": 4096,
+  "minDiskMB": 30720,
+  "recommendedDiskMB": 40960,
+  "minCpuPercent": 100,
+  "recommendedCpuPercent": 200,
+  "category": "gaming",
+  "tags": ["cs2", "counter-strike", "fps", "valve", "competitive", "shooter"],
+  "website": "https://www.counter-strike.net",
+  "supportUrl": "https://discord.gg/arc-panel"
+}

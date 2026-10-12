@@ -1,0 +1,134 @@
+{
+  "id": "minecraft-bedrock",
+  "name": "Minecraft Bedrock Edition",
+  "description": "Minecraft Bedrock Edition dedicated server for Windows 10/11, Xbox, PlayStation, Nintendo Switch, iOS, and Android players. Uses the official Bedrock Dedicated Server (BDS) via the itzg/minecraft-bedrock-server image.",
+  "author": "Arc Panel",
+  "version": "1.0.0",
+  "dockerImage": "itzg/minecraft-bedrock-server:latest",
+  "dockerImageAlternatives": [],
+  "defaultPorts": [
+    {
+      "container": 19132,
+      "protocol": "udp",
+      "description": "IPv4 game port"
+    },
+    {
+      "container": 19133,
+      "protocol": "udp",
+      "description": "IPv6 game port"
+    }
+  ],
+  "defaultEnv": {
+    "EULA": "TRUE",
+    "VERSION": "LATEST",
+    "GAMEMODE": "survival",
+    "DIFFICULTY": "easy",
+    "LEVEL_NAME": "Bedrock level",
+    "LEVEL_SEED": "",
+    "SERVER_NAME": "Arc Panel Bedrock Server",
+    "MAX_PLAYERS": "10",
+    "ONLINE_MODE": "true",
+    "WHITE_LIST": "false",
+    "ALLOW_CHEATS": "false",
+    "PLAYER_IDLE_TIMEOUT": "30",
+    "DEFAULT_PLAYER_PERMISSION_LEVEL": "member",
+    "TEXTUREPACK_REQUIRED": "false"
+  },
+  "envVariableDefinitions": [
+    {
+      "key": "EULA",
+      "name": "Accept EULA",
+      "description": "Must be TRUE to agree to Minecraft's End User License Agreement.",
+      "type": "boolean",
+      "required": true,
+      "locked": true,
+      "default": "TRUE"
+    },
+    {
+      "key": "VERSION",
+      "name": "Bedrock Server Version",
+      "description": "The Bedrock server version to download and run. Use LATEST for latest stable.",
+      "type": "string",
+      "required": true,
+      "default": "LATEST"
+    },
+    {
+      "key": "GAMEMODE",
+      "name": "Default Game Mode",
+      "description": "Default game mode for new players joining the server.",
+      "type": "select",
+      "required": false,
+      "options": ["survival", "creative", "adventure"],
+      "default": "survival"
+    },
+    {
+      "key": "DIFFICULTY",
+      "name": "Difficulty",
+      "description": "World difficulty setting.",
+      "type": "select",
+      "required": false,
+      "options": ["peaceful", "easy", "normal", "hard"],
+      "default": "easy"
+    },
+    {
+      "key": "MAX_PLAYERS",
+      "name": "Max Players",
+      "description": "Maximum number of players allowed.",
+      "type": "number",
+      "required": false,
+      "default": "10",
+      "min": 1,
+      "max": 30
+    },
+    {
+      "key": "SERVER_NAME",
+      "name": "Server Name",
+      "description": "The name displayed in the server browser.",
+      "type": "string",
+      "required": false,
+      "default": "Arc Panel Bedrock Server"
+    },
+    {
+      "key": "ONLINE_MODE",
+      "name": "Online Mode (Xbox Auth)",
+      "description": "Require Xbox Live authentication for players.",
+      "type": "boolean",
+      "required": false,
+      "default": "true"
+    },
+    {
+      "key": "WHITE_LIST",
+      "name": "Whitelist",
+      "description": "Enable whitelist to restrict who can join.",
+      "type": "boolean",
+      "required": false,
+      "default": "false"
+    }
+  ],
+  "stopCommand": "stop",
+  "startupCommand": "",
+  "configFiles": [
+    {
+      "path": "server.properties",
+      "description": "Main Bedrock server configuration."
+    },
+    {
+      "path": "allowlist.json",
+      "description": "Whitelist of allowed players (Xbox gamertags)."
+    },
+    {
+      "path": "permissions.json",
+      "description": "Player permission levels (visitor, member, operator)."
+    }
+  ],
+  "minMemoryMB": 1024,
+  "recommendedMemoryMB": 2048,
+  "minDiskMB": 2048,
+  "recommendedDiskMB": 5120,
+  "minCpuPercent": 50,
+  "recommendedCpuPercent": 100,
+  "category": "gaming",
+  "tags": ["minecraft", "bedrock", "mobile", "xbox", "console"],
+  "website": "https://minecraft.net",
+  "supportUrl": "https://discord.gg/arc-panel"
+}

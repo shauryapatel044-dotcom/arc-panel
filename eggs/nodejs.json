@@ -1,0 +1,99 @@
+{
+  "id": "nodejs",
+  "name": "Node.js Application",
+  "description": "Run any Node.js application inside an isolated Docker container. Supports npm, yarn, and pnpm package managers. Suitable for Discord bots, Express/Fastify web servers, REST APIs, WebSocket servers, and more.",
+  "author": "Arc Panel",
+  "version": "1.0.0",
+  "dockerImage": "node:20-slim",
+  "dockerImageAlternatives": [
+    "node:20-alpine",
+    "node:18-slim",
+    "node:18-alpine",
+    "node:lts-slim"
+  ],
+  "defaultPorts": [
+    {
+      "container": 3000,
+      "protocol": "tcp",
+      "description": "Application HTTP port"
+    }
+  ],
+  "defaultEnv": {
+    "MAIN_FILE": "index.js",
+    "NODE_VERSION": "20",
+    "PACKAGE_MANAGER": "npm",
+    "NODE_ENV": "production",
+    "TZ": "UTC",
+    "NPM_FLAGS": "--production"
+  },
+  "envVariableDefinitions": [
+    {
+      "key": "MAIN_FILE",
+      "name": "Main Entry File",
+      "description": "The entry point JavaScript file (relative to the server root). Can also be a package.json 'start' script.",
+      "type": "string",
+      "required": true,
+      "default": "index.js"
+    },
+    {
+      "key": "PACKAGE_MANAGER",
+      "name": "Package Manager",
+      "description": "Which package manager to use for dependency installation.",
+      "type": "select",
+      "required": false,
+      "options": ["npm", "yarn", "pnpm"],
+      "default": "npm"
+    },
+    {
+      "key": "NODE_ENV",
+      "name": "Node Environment",
+      "description": "Set the NODE_ENV variable.",
+      "type": "select",
+      "required": false,
+      "options": ["production", "development", "staging"],
+      "default": "production"
+    },
+    {
+      "key": "NPM_FLAGS",
+      "name": "Install Flags",
+      "description": "Additional flags passed to the package manager install command (e.g., --production, --omit=dev).",
+      "type": "string",
+      "required": false,
+      "default": "--production"
+    },
+    {
+      "key": "TZ",
+      "name": "Timezone",
+      "description": "Timezone for the container.",
+      "type": "string",
+      "required": false,
+      "default": "UTC"
+    }
+  ],
+  "startupCommand": "${PACKAGE_MANAGER} install ${NPM_FLAGS} --no-audit --silent && node ${MAIN_FILE}",
+  "stopCommand": "",
+  "configFiles": [
+    {
+      "path": "package.json",
+      "description": "Node.js package configuration and dependency list."
+    },
+    {
+      "path": "index.js",
+      "description": "Main application entry point."
+    },
+    {
+      "path": ".env",
+      "description": "Application environment variables."
+    }
+  ],
+  "minMemoryMB": 128,
+  "recommendedMemoryMB": 512,
+  "minDiskMB": 512,
+  "recommendedDiskMB": 2048,
+  "minCpuPercent": 10,
+  "recommendedCpuPercent": 50,
+  "category": "application",
+  "tags": ["nodejs", "javascript", "bot", "web", "express", "discord", "api"],
+  "website": "https://nodejs.org",
+  "supportUrl": "https://discord.gg/arc-panel"
+}

@@ -1,0 +1,190 @@
+// ─── Prisma Schema for Arc Panel ─────────────────────────────────────────────
+// Database: MariaDB (MySQL-compatible)
+// ORM: Prisma 5.x
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ServerStatus {
+  INSTALLING
+  RUNNING
+  STOPPED
+  STARTING
+  STOPPING
+  ERROR
+  SUSPENDED
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+/// Platform user — can own game servers
+model User {
+  id                  String    @id @default(cuid())
+  username            String    @unique @db.VarChar(32)
+  email               String    @unique @db.VarChar(255)
+  passwordHash        String    @db.VarChar(255)
+  role                Role      @default(USER)
+  /// TOTP secret stored encrypted — null until 2FA is set up
+  twoFactorSecret     String?   @db.VarChar(255)
+  twoFactorEnabled    Boolean   @default(false)
+  /// Forces the user to change their password on next login (set true after admin creates account)
+  forcePasswordChange Boolean   @default(false)
+  suspended           Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  servers  Server[]
+  sessions Session[]
+
+  @@index([email])
+  @@index([username])
+  @@map("users")
+}
+
+/// A game server container managed by a daemon node
+model Server {
+  id          String       @id @default(cuid())
+  name        String       @db.VarChar(64)
+  /// The user who owns this server
+  ownerId     String
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  /// The daemon node that hosts this server
+  nodeId      String
+  node        Node         @relation(fields: [nodeId], references: [id])
+  /// Docker container ID on the node (null during installation)
+  containerId String?      @db.VarChar(128)
+  status      ServerStatus @default(INSTALLING)
+  /// Egg (game template) identifier — e.g. "minecraft-java", "csgo"
+  image       String       @db.VarChar(128)
+  /// Docker image + tag used for the container
+  dockerImage String       @db.VarChar(255)
+  /// Max memory in megabytes (0 = unlimited)
+  memoryLimit Int          @default(1024)
+  /// Max CPU usage in percent across all cores (0 = unlimited)
+  cpuLimit    Int          @default(100)
+  /// Max disk usage in megabytes (0 = unlimited)
+  diskLimit   Int          @default(5120)
+  /// Environment variables as JSON string
+  environment String?      @db.Text
+  /// Startup command override
+  startupCmd  String?      @db.VarChar(512)
+  suspended   Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  allocations Allocation[]
+  backups     Backup[]
+
+  @@index([ownerId])
+  @@index([nodeId])
+  @@map("servers")
+}
+
+/// A physical or virtual machine running the Arc Daemon
+model Node {
+  id          String   @id @default(cuid())
+  name        String   @unique @db.VarChar(64)
+  /// Fully qualified domain name or IP
+  fqdn        String   @db.VarChar(255)
+  port        Int      @default(8085)
+  /// Secret token used to authenticate panel→daemon requests (Bearer)
+  daemonToken String   @db.VarChar(255)
+  isOnline    Boolean  @default(false)
+  /// Total memory on this node in megabytes
+  totalMemory Int      @default(0)
+  /// Total CPU threads available on this node
+  totalCpu    Int      @default(0)
+  /// Memory currently allocated to running servers in megabytes
+  usedMemory  Int      @default(0)
+  /// CPU percent currently allocated to running servers
+  usedCpu     Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  servers     Server[]
+  allocations Allocation[]
+
+  @@map("nodes")
+}
+
+/// A network port allocation on a specific node, optionally assigned to a server
+model Allocation {
+  id         String   @id @default(cuid())
+  nodeId     String
+  node       Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  serverId   String?
+  server     Server?  @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  ip         String   @db.VarChar(45)
+  port       Int
+  isAssigned Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@unique([nodeId, ip, port])
+  @@index([nodeId])
+  @@index([serverId])
+  @@map("allocations")
+}
+
+/// A backup snapshot of a server's files created by the daemon
+model Backup {
+  id        String   @id @default(cuid())
+  serverId  String
+  server    Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  name      String   @db.VarChar(255)
+  /// Backup archive size in bytes
+  size      BigInt   @default(0)
+  /// SHA256 checksum of the backup archive
+  checksum  String?  @db.VarChar(64)
+  /// Whether the backup completed successfully
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([serverId])
+  @@map("backups")
+}
+
+/// Refresh token sessions for JWT rotation
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String   @unique @db.VarChar(512)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@map("sessions")
+}
+
+/// Game server egg template definitions
+model Egg {
+  id          String   @id @default(cuid())
+  name        String   @unique @db.VarChar(64)
+  description String?  @db.Text
+  /// Egg slug used as the `image` field on Server
+  slug        String   @unique @db.VarChar(64)
+  /// Default Docker image to use
+  dockerImage String   @db.VarChar(255)
+  /// Default startup command template
+  startupCmd  String   @db.VarChar(512)
+  /// JSON array of environment variable definitions
+  envSchema   String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("eggs")
+}
