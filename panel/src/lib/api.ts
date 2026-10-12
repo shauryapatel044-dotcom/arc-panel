@@ -4,7 +4,10 @@
 
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const BASE_URL =
+  typeof window !== 'undefined'
+    ? ''
+    : (process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001');
 
 /** Central Axios instance — import this everywhere instead of raw axios */
 export const api = axios.create({

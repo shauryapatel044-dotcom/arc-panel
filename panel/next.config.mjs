@@ -17,16 +17,17 @@ const nextConfig = {
     ],
   },
 
-  // Forward /api/* requests to the backend during local dev
+  // Forward /api/* requests to the local backend in both dev and production
+  // so browser requests always work over port 8080 regardless of NAT/private IPs or CORS
   async rewrites() {
-    return process.env.NODE_ENV === 'development'
-      ? [
-          {
-            source: '/api/:path*',
-            destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/:path*`,
-          },
-        ]
-      : [];
+    const backendUrl =
+      process.env.INTERNAL_API_URL || 'http://127.0.0.1:3001';
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
+      },
+    ];
   },
 
   // Security headers

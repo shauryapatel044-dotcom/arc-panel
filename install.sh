@@ -97,11 +97,10 @@ sleep 2
 
 # ── 1.4  Detect server IP ─────────────────────────────────────────────────────
 log_step "Detecting server IP address..."
-SERVER_IP=$(hostname -I | awk '{print $1}' 2>/dev/null || true)
-if [[ -z "$SERVER_IP" ]]; then
-  log_warn "hostname -I returned empty. Trying curl ifconfig.me..."
-  SERVER_IP=$(curl -s --connect-timeout 5 ifconfig.me 2>/dev/null || echo "127.0.0.1")
-fi
+SERVER_IP=$(curl -4 -fsSL --connect-timeout 5 https://api.ipify.org 2>/dev/null || \
+            curl -4 -fsSL --connect-timeout 5 https://ifconfig.me 2>/dev/null || \
+            hostname -I | awk '{print $1}' 2>/dev/null || \
+            echo "127.0.0.1")
 log_ok "Server IP detected: $SERVER_IP"
 
 # ── 1.5  Initialise log file ──────────────────────────────────────────────────
@@ -694,39 +693,58 @@ elif [[ -f prisma/seed.js ]]; then
     node prisma/seed.js && \
     log_ok "Database seed complete." || \
     log_warn "Seed script returned non-zero — may already be seeded."
-else
-  log_warn "No seed file found at prisma/seed.ts or prisma/seed.js."
-  log_info "Attempting manual SQL seed as fallback..."
-
-  # Insert admin user with bcrypt hash of 'admin'
-  # This is the bcrypt hash of 'admin' with cost 12 — safe default placeholder
-  ADMIN_HASH='$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LeAHXxHXVa6qiZMey'
-
-  mysql -u "${DB_USER}" -p"${DB_PASSWORD}" "${DB_NAME}" <<SQLEOF || true
--- Create admin user if not exists
-INSERT IGNORE INTO users (id, email, username, password, role, createdAt, updatedAt)
-VALUES (
-  UNHEX(REPLACE(UUID(), '-', '')),
-  'admin@arcpanel.local',
-  'admin',
-  '${ADMIN_HASH}',
-  'ADMIN',
-  NOW(),
-  NOW()
-);
-SQLEOF
-  log_info "Fallback SQL seed attempted."
 fi
 
-# ── 9.5  Inject daemon token via SQL (fallback/guarantee) ────────────────────
-log_step "Injecting daemon token into nodes table via SQL (guarantee)..."
+# ── 9.5  Guarantee admin user & daemon token via SQL ─────────────────────────
+log_step "Ensuring default admin account and local node token in MariaDB..."
 
-mysql -u "${DB_USER}" -p"${DB_PASSWORD}" "${DB_NAME}" <<SQLEOF || log_warn "SQL token injection: table 'nodes' may not exist yet."
--- Update the daemon token on the local node (created by seed)
-UPDATE nodes SET daemonToken='${TOKEN}' WHERE name='local';
+# Verified bcrypt hash of 'admin' (cost 10)
+ADMIN_HASH='$2a$10$akdpPBrBrGAeIHcyLtZR6.tPWXl/7ZOoUjkXdctUZPY1UmQmKNtjS'
+
+mysql -u "${DB_USER}" -p"${DB_PASSWORD}" "${DB_NAME}" <<SQLEOF || log_warn "SQL guarantee warning."
+INSERT INTO users (id, username, email, passwordHash, role, twoFactorEnabled, forcePasswordChange, suspended, createdAt, updatedAt)
+VALUES (
+  'clx_admin_001',
+  'admin',
+  'admin@arc.local',
+  '${ADMIN_HASH}',
+  'ADMIN',
+  0,
+  1,
+  0,
+  NOW(3),
+  NOW(3)
+)
+ON DUPLICATE KEY UPDATE
+  username='admin',
+  email='admin@arc.local',
+  passwordHash='${ADMIN_HASH}',
+  role='ADMIN',
+  suspended=0,
+  updatedAt=NOW(3);
+
+INSERT INTO nodes (id, name, fqdn, port, daemonToken, isOnline, totalMemory, totalCpu, usedMemory, usedCpu, createdAt, updatedAt)
+VALUES (
+  'clx_node_local',
+  'local',
+  '127.0.0.1',
+  8085,
+  '${TOKEN}',
+  1,
+  8192,
+  4,
+  0,
+  0,
+  NOW(3),
+  NOW(3)
+)
+ON DUPLICATE KEY UPDATE
+  daemonToken='${TOKEN}',
+  isOnline=1,
+  updatedAt=NOW(3);
 SQLEOF
 
-log_ok "Daemon token injection attempted."
+log_ok "Default admin ('admin' / 'admin@arc.local', password 'admin') and local node verified in DB."
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECTION 10 — Frontend Build

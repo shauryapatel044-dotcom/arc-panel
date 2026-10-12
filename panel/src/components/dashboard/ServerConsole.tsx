@@ -21,8 +21,15 @@ import GlassCard from '@/components/ui/GlassCard';
 import GlassButton from '@/components/ui/GlassButton';
 import { cn } from '@/lib/utils';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+function getSocketBaseUrl(): string {
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    return `${protocol}//${window.location.hostname}:3001`;
+  }
+  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+}
+
+const API_BASE_URL = getSocketBaseUrl();
 
 interface ServerConsoleProps {
   serverId: string;

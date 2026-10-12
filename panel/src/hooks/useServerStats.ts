@@ -9,8 +9,15 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type { ServerStats, ServerStatus } from '@/types';
 
-const DAEMON_WS_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+function getSocketBaseUrl(): string {
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    return `${protocol}//${window.location.hostname}:3001`;
+  }
+  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+}
+
+const DAEMON_WS_URL = getSocketBaseUrl();
 
 /** How long to wait before attempting a reconnect (ms) */
 const RECONNECT_DELAY_MS = 3_000;
