@@ -147,7 +147,9 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y \
   nano \
   rsync \
   cron \
-  logrotate
+  logrotate \
+  sudo \
+  psmisc
 
 log_ok "Core dependencies installed."
 
@@ -206,58 +208,84 @@ systemctl start mariadb
 # Allow MariaDB to fully initialise
 sleep 2
 
-# ── 4.1  Generate secure passwords ────────────────────────────────────────────
+# ── 4.1  Generate or load secure passwords ────────────────────────────────────
 log_step "Generating secure database credentials..."
-DB_ROOT_PASSWORD=$(openssl rand -hex 32)
-DB_PASSWORD=$(openssl rand -hex 24)
+mkdir -p /etc/arc-panel
+if [[ -f /etc/arc-panel/credentials ]]; then
+  log_info "Loading existing database credentials from /etc/arc-panel/credentials..."
+  source /etc/arc-panel/credentials || true
+fi
+DB_ROOT_PASSWORD="${DB_ROOT_PASSWORD:-$(openssl rand -hex 32)}"
+DB_PASSWORD="${DB_PASSWORD:-$(openssl rand -hex 24)}"
 DB_NAME="arcpanel"
 DB_USER="arcpanel"
 
-log_info "Root password and application password generated (saved to credentials file)."
+log_info "Root password and application password ready."
+
+# Helper to execute SQL as MariaDB root regardless of current auth state
+run_mariadb_root() {
+  local sql="$1"
+  if mysql -u root -e "SELECT 1;" &>/dev/null; then
+    mysql -u root <<< "$sql"
+  elif [[ -f /etc/mysql/debian.cnf ]] && mysql --defaults-file=/etc/mysql/debian.cnf -e "SELECT 1;" &>/dev/null; then
+    mysql --defaults-file=/etc/mysql/debian.cnf <<< "$sql"
+  elif mysql -u root -p"${DB_ROOT_PASSWORD}" -e "SELECT 1;" &>/dev/null; then
+    mysql -u root -p"${DB_ROOT_PASSWORD}" <<< "$sql"
+  else
+    log_warn "MariaDB root password was set by a previous run. Recovering MariaDB root access..."
+    systemctl stop mariadb || true
+    killall -9 mariadbd mysqld mysqld_safe 2>/dev/null || true
+    sleep 1
+    mkdir -p /run/mysqld
+    chown mysql:mysql /run/mysqld
+    mysqld_safe --skip-grant-tables --skip-networking &>/dev/null &
+    sleep 4
+    mysql -u root <<RECOVEREOF
+FLUSH PRIVILEGES;
+ALTER USER 'root'@'localhost' IDENTIFIED VIA unix_socket OR mysql_native_password USING PASSWORD('${DB_ROOT_PASSWORD}');
+FLUSH PRIVILEGES;
+RECOVEREOF
+    killall mariadbd mysqld mysqld_safe 2>/dev/null || true
+    sleep 2
+    systemctl start mariadb
+    sleep 2
+    mysql -u root <<< "$sql" || mysql -u root -p"${DB_ROOT_PASSWORD}" <<< "$sql"
+  fi
+}
 
 # ── 4.2  mysql_secure_installation equivalent (non-interactive) ───────────────
 log_step "Securing MariaDB installation..."
 
-mysql -u root <<EOF
--- Set root password
-ALTER USER 'root'@'localhost' IDENTIFIED BY '${DB_ROOT_PASSWORD}';
-
--- Remove anonymous users
-DELETE FROM mysql.user WHERE User='';
-
--- Disable remote root login
-DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
-
--- Remove test database
+run_mariadb_root "
+ALTER USER 'root'@'localhost' IDENTIFIED VIA unix_socket OR mysql_native_password USING PASSWORD('${DB_ROOT_PASSWORD}');
+DROP USER IF EXISTS ''@'localhost';
+DROP USER IF EXISTS ''@'$(hostname)';
 DROP DATABASE IF EXISTS test;
-DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-
--- Flush privileges
 FLUSH PRIVILEGES;
-EOF
+"
 
-log_ok "MariaDB root secured."
+log_ok "MariaDB root secured (unix_socket + password enabled)."
 
 # ── 4.3  Create application database and user ─────────────────────────────────
 log_step "Creating Arc Panel database and user..."
 
-mysql -u root -p"${DB_ROOT_PASSWORD}" <<EOF
--- Create the application database
+run_mariadb_root "
 CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
--- Create the application user
-CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost'
-  IDENTIFIED BY '${DB_PASSWORD}';
-
--- Grant all privileges on the application database
+CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
+ALTER USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
 
-FLUSH PRIVILEGES;
-EOF
+CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASSWORD}';
+ALTER USER '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASSWORD}';
+GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'127.0.0.1';
 
-log_ok "Database '${DB_NAME}' created. User '${DB_USER}'@'localhost' configured."
+FLUSH PRIVILEGES;
+"
+
+log_ok "Database '${DB_NAME}' created. User '${DB_USER}'@'localhost' and '127.0.0.1' configured."
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECTION 5 — Docker Installation
