@@ -47,7 +47,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useServerStats } from '@/hooks/useServerStats';
 import { serverApi, backupApi } from '@/lib/api';
 import { formatBytes, cn } from '@/lib/utils';
-import { EGG_CATALOG } from '../create/page';
+import { EGG_CATALOG } from '@/lib/eggs';
 import type { Server, Backup, ServerStatus } from '@/types';
 
 type TabKey =
@@ -175,8 +175,8 @@ export default function ServerDetailPage() {
       };
 
       const isPython =
-        normalized.eggId.toLowerCase().includes('python') ||
-        normalized.dockerImage.toLowerCase().includes('python');
+        (normalized.eggId ?? '').toLowerCase().includes('python') ||
+        (normalized.dockerImage ?? '').toLowerCase().includes('python');
       const resolvedPyScript =
         rawStartupCmd.replace(/^python3?\s+/i, '').trim() ||
         envObj.PYTHON_FILE ||
@@ -194,7 +194,7 @@ export default function ServerDetailPage() {
       const normalizedSlug =
         normalized.eggId === 'minecraft-java'
           ? 'minecraft-paper'
-          : normalized.eggId;
+          : (normalized.eggId ?? 'minecraft-paper');
       const matchedEgg =
         EGG_CATALOG.find((e) => e.slug === normalizedSlug) ?? EGG_CATALOG[0];
       const currentVer =
@@ -432,8 +432,8 @@ export default function ServerDetailPage() {
     setSavingSettings(true);
 
     const isPython =
-      server.eggId.toLowerCase().includes('python') ||
-      server.dockerImage.toLowerCase().includes('python');
+      (server.eggId ?? '').toLowerCase().includes('python') ||
+      (server.dockerImage ?? '').toLowerCase().includes('python');
     const cleanPy = pythonFile.trim() || 'main.py';
     const resolvedCmd = isPython
       ? `python ${cleanPy}`
@@ -490,13 +490,13 @@ export default function ServerDetailPage() {
     : server.status;
 
   const isPythonServer =
-    server.eggId.toLowerCase().includes('python') ||
-    server.dockerImage.toLowerCase().includes('python');
+    (server.eggId ?? '').toLowerCase().includes('python') ||
+    (server.dockerImage ?? '').toLowerCase().includes('python');
 
   const isMinecraftServer =
-    server.eggId.toLowerCase().includes('minecraft') ||
-    server.dockerImage.toLowerCase().includes('minecraft') ||
-    server.dockerImage.toLowerCase().includes('mc-proxy');
+    (server.eggId ?? '').toLowerCase().includes('minecraft') ||
+    (server.dockerImage ?? '').toLowerCase().includes('minecraft') ||
+    (server.dockerImage ?? '').toLowerCase().includes('mc-proxy');
 
   const selectedReinstallEgg =
     EGG_CATALOG.find((e) => e.slug === reinstallEggSlug) ?? EGG_CATALOG[0];

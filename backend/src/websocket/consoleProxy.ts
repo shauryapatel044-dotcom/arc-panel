@@ -996,11 +996,14 @@ export function registerConsoleProxy(io: SocketIOServer): void {
             const currentSrv = await prisma.server.findUnique({
               where: { id: serverId },
             });
-            const stats = await serverService.getStats(serverId);
-            const normalizedStatus = (
+            const stats = (await serverService.getStats(serverId)) as Record<
+              string,
+              any
+            >;
+            const normalizedStatus = String(
               currentSrv?.status ||
-              stats.status ||
-              'RUNNING'
+                stats.status ||
+                'RUNNING',
             ).toLowerCase();
             const isStopped = normalizedStatus === 'stopped';
             socket.emit('stats', {

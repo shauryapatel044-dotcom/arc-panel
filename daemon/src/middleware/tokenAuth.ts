@@ -38,6 +38,14 @@ export function verifyToken(token: string | undefined | null): boolean {
  *  - ?token=<token>                   (fallback for browser-based clients)
  */
 export function tokenAuth(req: Request, res: Response, next: NextFunction): void {
+  // 0. Allow public health check endpoint (used by install.sh & monitoring)
+  if (
+    req.method === 'GET' &&
+    (req.path === '/api/health' || req.path === '/health')
+  ) {
+    return next();
+  }
+
   // 1. Try Authorization header first.
   const authHeader = req.headers['authorization'];
   if (authHeader && authHeader.startsWith('Bearer ')) {

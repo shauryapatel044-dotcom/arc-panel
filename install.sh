@@ -817,7 +817,7 @@ LimitNPROC=4096
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/arc-panel/backend /var/log/arc-panel
+ReadWritePaths=/opt/arc-panel /var/lib/arc-panel /var/log/arc-panel /tmp
 
 # Logging
 StandardOutput=append:/var/log/arc-panel/backend.log
@@ -917,7 +917,7 @@ LimitNOFILE=65536
 # Security hardening
 NoNewPrivileges=true
 ProtectHome=true
-ReadWritePaths=/opt/arc-panel/panel /var/log/arc-panel
+ReadWritePaths=/opt/arc-panel /var/log/arc-panel /tmp
 
 # Logging
 StandardOutput=append:/var/log/arc-panel/frontend.log
