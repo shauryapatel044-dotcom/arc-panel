@@ -681,7 +681,7 @@ if [[ -f prisma/seed.ts ]]; then
     DAEMON_TOKEN="${TOKEN}" \
     DAEMON_URL="http://127.0.0.1:8085" \
     SERVER_IP="${SERVER_IP}" \
-    npx ts-node prisma/seed.ts && \
+    npx ts-node --transpile-only prisma/seed.ts && \
     log_ok "Database seed complete." || \
     log_warn "Seed script returned non-zero — may already be seeded."
 

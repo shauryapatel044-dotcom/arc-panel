@@ -112,11 +112,36 @@ router.post('/login', validate(LoginSchema), async (req: Request, res: Response)
   try {
     const { email, password, totpCode } = req.body as z.infer<typeof LoginSchema>;
 
-    const user = await prisma.user.findFirst({
+    const normalizedInput = email.trim();
+    let user = await prisma.user.findFirst({
       where: {
-        OR: [{ email }, { username: email }],
+        OR: [{ email: normalizedInput }, { username: normalizedInput }],
       },
     });
+
+    // Auto-bootstrap default admin if database has no admin user yet
+    if (
+      !user &&
+      (normalizedInput.toLowerCase() === 'admin@arc.local' ||
+        normalizedInput.toLowerCase() === 'admin')
+    ) {
+      const adminCount = await prisma.user.count({
+        where: { role: Role.ADMIN },
+      });
+      if (adminCount === 0) {
+        const defaultHash = await bcrypt.hash('admin', BCRYPT_ROUNDS);
+        user = await prisma.user.create({
+          data: {
+            username: 'admin',
+            email: 'admin@arc.local',
+            passwordHash: defaultHash,
+            role: Role.ADMIN,
+            forcePasswordChange: true,
+          },
+        });
+        logger.info('Auto-bootstrapped default admin user (admin@arc.local)');
+      }
+    }
 
     if (!user) {
       res.status(401).json({ error: 'Invalid credentials.' });

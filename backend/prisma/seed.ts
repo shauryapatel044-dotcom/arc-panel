@@ -133,7 +133,11 @@ async function main(): Promise<void> {
 
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@arc.local' },
-    update: {},
+    update: {
+      username: 'admin',
+      passwordHash: adminPassword,
+      role: Role.ADMIN,
+    },
     create: {
       username: 'admin',
       email: 'admin@arc.local',
@@ -150,13 +154,16 @@ async function main(): Promise<void> {
 
   const localNode = await prisma.node.upsert({
     where: { name: 'local' },
-    update: {},
+    update: {
+      daemonToken,
+      isOnline: true,
+    },
     create: {
       name: 'local',
       fqdn: '127.0.0.1',
       port: 8085,
       daemonToken,
-      isOnline: false,
+      isOnline: true,
       totalMemory: 8192,
       totalCpu: 4,
       usedMemory: 0,
