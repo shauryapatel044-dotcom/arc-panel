@@ -72,7 +72,7 @@ case "$UBUNTU_VERSION" in
 esac
 
 # ── 1.3  ASCII Art Banner ─────────────────────────────────────────────────────
-clear
+clear 2>/dev/null || true
 echo -e "${CYAN}${BOLD}"
 cat << 'EOF'
   ___           ____                  _
@@ -394,7 +394,7 @@ usermod -aG docker arc-panel
 log_ok "User 'arc-panel' added to docker group."
 
 # ── 7.3  Clone GitHub Repository or Copy Project Files ────────────────────────
-INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || pwd)"
 REPO_URL="${1:-${REPO_URL:-https://github.com/shauryapatel044-dotcom/arc-panel.git}}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
 
