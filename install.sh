@@ -719,11 +719,11 @@ if [[ -f /opt/arc-panel/panel/package.json ]]; then
 
   log_ok "Next.js build complete."
 
-  # Verify standalone output exists
-  if [[ -f /opt/arc-panel/panel/.next/standalone/server.js ]]; then
-    log_ok "Standalone server.js found — ready for production serving."
+  # Verify production build output exists
+  if [[ -f /opt/arc-panel/panel/.next/BUILD_ID ]]; then
+    log_ok "Next.js production build (.next/BUILD_ID) verified — ready for serving."
   else
-    log_warn ".next/standalone/server.js not found. Ensure next.config.js has output: 'standalone'."
+    log_warn ".next/BUILD_ID not found. Check build output above."
   fi
 
 else
