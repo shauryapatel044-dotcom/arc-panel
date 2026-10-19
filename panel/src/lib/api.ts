@@ -251,4 +251,55 @@ export const adminApi = {
   getStats: () => api.get('/admin/stats'),
 };
 
+/** 1-Click Plugin & Mod endpoints */
+export const pluginApi = {
+  getCatalog:   (serverId: string) => api.get(`/servers/${serverId}/plugins/catalog`),
+  getInstalled: (serverId: string) => api.get(`/servers/${serverId}/plugins/installed`),
+  search:       (serverId: string, query: string, type: 'plugin' | 'mod' = 'plugin') =>
+                  api.get(`/servers/${serverId}/plugins/search`, { params: { query, type } }),
+  install:      (serverId: string, body: { downloadUrl: string; filename?: string; targetDir?: 'plugins' | 'mods' }) =>
+                  api.post(`/servers/${serverId}/plugins/install`, body),
+  uninstall:    (serverId: string, filename: string, targetDir: 'plugins' | 'mods' = 'plugins') =>
+                  api.delete(`/servers/${serverId}/plugins/uninstall`, { params: { filename, targetDir } }),
+};
+
+/** On-Demand Server Database endpoints */
+export const databaseApi = {
+  list:           (serverId: string) => api.get(`/servers/${serverId}/databases`),
+  create:         (serverId: string, name: string) => api.post(`/servers/${serverId}/databases`, { name }),
+  delete:         (serverId: string, dbId: string) => api.delete(`/servers/${serverId}/databases/${dbId}`),
+  rotatePassword: (serverId: string, dbId: string) => api.post(`/servers/${serverId}/databases/${dbId}/rotate-password`),
+};
+
+/** Server Collaborators / Subusers endpoints */
+export const subuserApi = {
+  list:   (serverId: string) => api.get(`/servers/${serverId}/subusers`),
+  add:    (serverId: string, body: { emailOrUsername: string; permissions: string[] }) =>
+            api.post(`/servers/${serverId}/subusers`, body),
+  update: (serverId: string, subId: string, permissions: string[]) =>
+            api.patch(`/servers/${serverId}/subusers/${subId}`, { permissions }),
+  remove: (serverId: string, subId: string) => api.delete(`/servers/${serverId}/subusers/${subId}`),
+};
+
+/** Discord Webhook & Audit Log endpoints */
+export const webhookApi = {
+  listWebhooks: (serverId: string) => api.get(`/servers/${serverId}/webhooks`),
+  createWebhook:(serverId: string, body: { name: string; url: string; events: string[] }) =>
+                  api.post(`/servers/${serverId}/webhooks`, body),
+  deleteWebhook:(serverId: string, whId: string) => api.delete(`/servers/${serverId}/webhooks/${whId}`),
+  testWebhook:  (serverId: string, whId: string) => api.post(`/servers/${serverId}/webhooks/${whId}/test`),
+  getAuditLogs: (serverId: string, limit = 50) => api.get(`/servers/${serverId}/audit-logs`, { params: { limit } }),
+};
+
+/** Port & Allocation Manager endpoints */
+export const networkApi = {
+  list:        (serverId: string) => api.get(`/servers/${serverId}/network`),
+  assign:      (serverId: string, body?: { allocationId?: string; notes?: string }) =>
+                 api.post(`/servers/${serverId}/network/assign`, body || {}),
+  unassign:    (serverId: string, allocId: string) => api.delete(`/servers/${serverId}/network/${allocId}`),
+  setPrimary:  (serverId: string, allocId: string) => api.patch(`/servers/${serverId}/network/${allocId}/primary`),
+  updateNotes: (serverId: string, allocId: string, notes: string) =>
+                 api.patch(`/servers/${serverId}/network/${allocId}/notes`, { notes }),
+};
+
 export default api;

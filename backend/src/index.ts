@@ -55,6 +55,11 @@ import serverRoutes from './routes/servers';
 import fileRoutes from './routes/files';
 import backupRoutes from './routes/backups';
 import adminRoutes from './routes/admin';
+import pluginRoutes from './routes/plugins';
+import databaseRoutes from './routes/databases';
+import subuserRoutes from './routes/subusers';
+import webhookRoutes from './routes/webhooks';
+import networkRoutes from './routes/network';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
@@ -154,12 +159,23 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/users', profileRoutes);
 
-// Server routes + nested file & backup routes
+// Server routes + nested feature routes
 app.use('/api/servers', serverRoutes);
 app.use('/api/servers/:serverId/files', fileRoutes);
 app.use('/api/files/:serverId', fileRoutes);
 app.use('/api/servers/:serverId/backups', backupRoutes);
 app.use('/api/backups/:serverId', backupRoutes);
+
+// New Feature Routes
+app.use('/api/servers/:serverId/plugins', pluginRoutes);
+app.use('/api/plugins/:serverId', pluginRoutes);
+app.use('/api/servers/:serverId/databases', databaseRoutes);
+app.use('/api/databases/:serverId', databaseRoutes);
+app.use('/api/servers/:serverId/subusers', subuserRoutes);
+app.use('/api/subusers/:serverId', subuserRoutes);
+app.use('/api/servers/:serverId/network', networkRoutes);
+app.use('/api/network/:serverId', networkRoutes);
+app.use('/api/servers/:serverId', webhookRoutes);
 
 // Admin routes (/api/admin/stats, /api/admin/users, /api/admin/servers, /api/admin/nodes)
 app.use('/api/admin', adminRoutes);

@@ -526,6 +526,15 @@ router.post(
         // Ignore broadcast error
       }
 
+      const { auditService } = require('../services/AuditService');
+      auditService.logAction({
+        serverId: updated.id,
+        action: 'SERVER_REINSTALL',
+        details: `Server reinstalled with ${matchedEgg?.name || targetEggSlug} (${version})`,
+        userId: req.user?.sub,
+        ipAddress: req.ip,
+      });
+
       logger.info('Server reinstalled with new version', {
         serverId: updated.id,
         eggSlug: targetEggSlug,
@@ -547,6 +556,15 @@ router.post(
 
 router.delete('/:id', requireOwnership, async (req: Request, res: Response) => {
   try {
+    const { auditService } = require('../services/AuditService');
+    await auditService.logAction({
+      serverId: req.params.id,
+      action: 'SERVER_DELETE',
+      details: 'Server destroyed and volume deleted',
+      userId: req.user?.sub,
+      ipAddress: req.ip,
+    });
+
     await serverService.deleteServer(req.params.id);
     logger.info('Server deleted', { serverId: req.params.id, userId: req.user!.sub });
     res.json({ message: 'Server deleted successfully.' });
@@ -564,6 +582,16 @@ router.post('/:id/power', requireOwnership, validate(PowerActionSchema), async (
     const { action } = req.body as z.infer<typeof PowerActionSchema>;
 
     await serverService.powerAction(req.params.id, action as PowerAction);
+
+    const { auditService } = require('../services/AuditService');
+    auditService.logAction({
+      serverId: req.params.id,
+      action: `POWER_${action.toUpperCase()}`,
+      details: `Dispatched ${action.toUpperCase()} command to container`,
+      userId: req.user?.sub,
+      ipAddress: req.ip,
+    });
+
     res.json({ message: `Power action "${action}" sent successfully.` });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Power action failed.';

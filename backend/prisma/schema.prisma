@@ -46,8 +46,10 @@ model User {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  servers  Server[]
-  sessions Session[]
+  servers        Server[]
+  sessions       Session[]
+  subuserAccess  ServerSubuser[]
+  auditLogs      ServerAuditLog[]
 
   @@index([email])
   @@index([username])
@@ -87,6 +89,10 @@ model Server {
 
   allocations Allocation[]
   backups     Backup[]
+  subusers    ServerSubuser[]
+  databases   ServerDatabase[]
+  auditLogs   ServerAuditLog[]
+  webhooks    ServerWebhook[]
 
   @@index([ownerId])
   @@index([nodeId])
@@ -130,6 +136,8 @@ model Allocation {
   ip         String   @db.VarChar(45)
   port       Int
   isAssigned Boolean  @default(false)
+  isPrimary  Boolean  @default(false)
+  notes      String?  @db.VarChar(64)
   createdAt  DateTime @default(now())
 
   @@unique([nodeId, ip, port])
@@ -187,4 +195,75 @@ model Egg {
   updatedAt   DateTime @updatedAt
 
   @@map("eggs")
+}
+
+/// Server sub-user access delegation with granular permissions
+model ServerSubuser {
+  id          String   @id @default(cuid())
+  serverId    String
+  server      Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// JSON array of permission strings (e.g. ["power.*", "console.*", "files.*"])
+  permissions String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([serverId, userId])
+  @@index([serverId])
+  @@index([userId])
+  @@map("server_subusers")
+}
+
+/// Dedicated MySQL/MariaDB database provisioned for a server
+model ServerDatabase {
+  id             String   @id @default(cuid())
+  serverId       String
+  server         Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  name           String   @db.VarChar(64)
+  username       String   @db.VarChar(64)
+  password       String   @db.VarChar(128)
+  host           String   @default("127.0.0.1") @db.VarChar(128)
+  port           Int      @default(3306)
+  maxConnections Int      @default(10)
+  createdAt      DateTime @default(now())
+
+  @@unique([serverId, name])
+  @@index([serverId])
+  @@map("server_databases")
+}
+
+/// Audit activity log for server actions
+model ServerAuditLog {
+  id        String   @id @default(cuid())
+  serverId  String
+  server    Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String   @db.VarChar(64)
+  details   String?  @db.Text
+  ipAddress String?  @db.VarChar(45)
+  createdAt DateTime @default(now())
+
+  @@index([serverId])
+  @@index([userId])
+  @@index([action])
+  @@map("server_audit_logs")
+}
+
+/// Discord / HTTP Webhooks for server status and notifications
+model ServerWebhook {
+  id        String   @id @default(cuid())
+  serverId  String
+  server    Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  name      String   @db.VarChar(64)
+  url       String   @db.VarChar(512)
+  /// JSON array of subscribed event types (e.g. ["start", "stop", "crash", "backup"])
+  events    String   @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serverId])
+  @@map("server_webhooks")
 }

@@ -29,16 +29,21 @@ Arc Panel is an open-source alternative to Pterodactyl Panel, designed for simpl
 
 | Feature | Description |
 |---|---|
-| 🎮 **Multi-game Support** | Minecraft Java/Bedrock, Palworld, Rust, CS2, and more via egg system |
-| 🐳 **Docker Isolation** | Every game server runs in its own Docker container |
-| 📁 **File Manager** | Browser-based file editor with SFTP access |
-| 🖥️ **Live Console** | Real-time server console via WebSocket |
-| 📊 **Resource Monitoring** | CPU, memory, disk, and network graphs |
-| 💾 **Automated Backups** | Scheduled backups with configurable retention |
-| 🔐 **Role-Based Access** | Admin, moderator, and user roles |
-| 🌐 **Multi-node** | Manage game servers across multiple physical nodes |
-| 🔑 **API-first** | Full REST API for automation and integrations |
-| ⚡ **Instant Deploy** | Single bash script installs everything on a fresh VPS |
+| 🎮 **Multi-game Support** | Minecraft Java/Bedrock, Palworld, Rust, CS2, Python, Node.js and more |
+| 🐳 **Docker Isolation** | Every game server runs in its own Docker container with cgroup limits |
+| 🧩 **1-Click Plugins & Mods** | Search Modrinth live + curated 1-click catalog (EssentialsX, LuckPerms, Geyser, etc.) |
+| 🗄️ **Server Databases** | On-demand isolated MariaDB databases provisioned per server with JDBC/CLI strings |
+| 👥 **Team & Sub-Users** | Invite collaborators with granular permissions (power, console, files, backups, DBs) |
+| 🔔 **Discord Webhooks & Audit** | Real-time crash & power state Discord alerts, plus complete server audit trail |
+| 🔌 **Port & Network Manager** | Multi-port allocations with 1-click presets for Geyser Bedrock, Dynmap, and Voice Chat |
+| 📁 **File Manager** | Browser-based code/config editor, drag-and-drop uploads, and secure SFTP access |
+| 🖥️ **Live Console** | Ultra-low-latency xterm.js terminal stream with container command stdin |
+| 📊 **Resource Monitoring** | Real-time CPU, RAM, and disk utilization charts with live watchdog tracking |
+| 💾 **Automated Backups** | Tar/Gzip snapshots with 1-click instant rollback and download |
+| 🔐 **Role-Based Access** | Granular user roles, 2FA TOTP authentication, and session management |
+| 🌐 **Multi-node Ready** | Manage distributed game server nodes across multiple physical hosts |
+| 🔑 **API-first** | Comprehensive REST & WebSocket API for external automation |
+| ⚡ **Instant 1-Line Deploy** | Single bash command installs and configures the entire stack on Ubuntu VPS |
 
 ---
 

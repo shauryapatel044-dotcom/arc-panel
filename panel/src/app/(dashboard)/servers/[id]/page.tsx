@@ -33,6 +33,10 @@ import {
   ShieldCheck,
   Layers,
   RefreshCw,
+  Puzzle,
+  Database,
+  Users,
+  Bell,
 } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -43,6 +47,11 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import ServerConsole from '@/components/dashboard/ServerConsole';
 import ResourceChart from '@/components/dashboard/ResourceChart';
 import FileManager from '@/components/dashboard/FileManager';
+import PluginManager from '@/components/dashboard/PluginManager';
+import DatabaseManager from '@/components/dashboard/DatabaseManager';
+import SubuserManager from '@/components/dashboard/SubuserManager';
+import WebhookManager from '@/components/dashboard/WebhookManager';
+import NetworkManager from '@/components/dashboard/NetworkManager';
 import { useAuth } from '@/hooks/useAuth';
 import { useServerStats } from '@/hooks/useServerStats';
 import { serverApi, backupApi } from '@/lib/api';
@@ -54,8 +63,12 @@ type TabKey =
   | 'console'
   | 'resources'
   | 'files'
-  | 'backups'
+  | 'plugins'
+  | 'databases'
   | 'network'
+  | 'users'
+  | 'backups'
+  | 'webhooks'
   | 'settings';
 
 function parseEnvObject(raw: unknown): Record<string, string> {
@@ -509,8 +522,12 @@ export default function ServerDetailPage() {
     { key: 'console', label: 'Live Console', icon: Terminal },
     { key: 'resources', label: 'Resources', icon: Activity },
     { key: 'files', label: 'File Manager', icon: FolderOpen },
+    { key: 'plugins', label: 'Plugins & Mods', icon: Puzzle },
+    { key: 'databases', label: 'Databases', icon: Database },
+    { key: 'network', label: 'Network & Ports', icon: Network },
+    { key: 'users', label: 'Team Access', icon: Users },
     { key: 'backups', label: 'Backups', icon: Archive },
-    { key: 'network', label: 'Network', icon: Network },
+    { key: 'webhooks', label: 'Alerts & Logs', icon: Bell },
     { key: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -767,7 +784,17 @@ export default function ServerDetailPage() {
       {/* ── TAB 3: FILE MANAGER ──────────────────────────────────── */}
       {activeTab === 'files' && <FileManager serverId={server.id} />}
 
-      {/* ── TAB 4: BACKUPS ───────────────────────────────────────── */}
+      {/* ── TAB 4: PLUGINS & MODS ─────────────────────────────────── */}
+      {activeTab === 'plugins' && (
+        <PluginManager serverId={server.id} serverEgg={server.eggId} />
+      )}
+
+      {/* ── TAB 5: DATABASES ───────────────────────────────────────── */}
+      {activeTab === 'databases' && (
+        <DatabaseManager serverId={server.id} />
+      )}
+
+      {/* ── TAB 8: BACKUPS ───────────────────────────────────────── */}
       {activeTab === 'backups' && (
         <div className="flex flex-col gap-5">
           <GlassCard hoverable={false} accentColor="cyan">
@@ -860,47 +887,19 @@ export default function ServerDetailPage() {
         </div>
       )}
 
-      {/* ── TAB 5: NETWORK ───────────────────────────────────────── */}
+      {/* ── TAB 6: NETWORK & PORTS ────────────────────────────────── */}
       {activeTab === 'network' && (
-        <GlassCard hoverable={false} accentColor="blue">
-          <h3 className="text-base font-semibold text-white">
-            Port Allocations (Range 25500–26000)
-          </h3>
-          <p className="mt-1 text-xs text-white/50">
-            Network bindings assigned to this container on the host node.
-          </p>
-          <div className="mt-4 divide-y divide-white/10">
-            {(server.allocations.length > 0
-              ? server.allocations
-              : [
-                  {
-                    id: 'default',
-                    nodeId: server.nodeId,
-                    ip: '127.0.0.1',
-                    port: 25500,
-                    assigned: true,
-                  },
-                ]
-            ).map((alloc, idx) => (
-              <div
-                key={alloc.id ?? idx}
-                className="flex items-center justify-between py-3"
-              >
-                <div>
-                  <p className="font-mono text-sm font-semibold text-arc-cyan-400">
-                    {alloc.ip}:{alloc.port}
-                  </p>
-                  <p className="text-xs text-white/45">
-                    TCP / UDP Game & Query Traffic
-                  </p>
-                </div>
-                <span className="rounded-full border border-arc-cyan-400/30 bg-arc-cyan-400/10 px-3 py-1 text-xs font-semibold text-arc-cyan-400">
-                  Primary Allocation
-                </span>
-              </div>
-            ))}
-          </div>
-        </GlassCard>
+        <NetworkManager serverId={server.id} />
+      )}
+
+      {/* ── TAB 7: TEAM ACCESS / COLLABORATORS ────────────────────── */}
+      {activeTab === 'users' && (
+        <SubuserManager serverId={server.id} />
+      )}
+
+      {/* ── TAB 9: ALERTS & AUDIT LOGS ────────────────────────────── */}
+      {activeTab === 'webhooks' && (
+        <WebhookManager serverId={server.id} />
       )}
 
       {/* ── TAB 6: SETTINGS ──────────────────────────────────────── */}

@@ -54,8 +54,90 @@ export interface Allocation {
   ip:         string;
   port:       number;
   alias?:     string;
-  assigned:   boolean;
+  assigned?:  boolean;
+  isAssigned?: boolean;
+  isPrimary?: boolean;
+  notes?:     string;
   serverId?:  string;
+}
+
+/** ─── Plugin & Mod ──────────────────────────────────────────────── */
+export interface PluginItem {
+  id:          string;
+  name:        string;
+  slug:        string;
+  description: string;
+  category:    string;
+  author:      string;
+  iconUrl?:    string;
+  downloadUrl: string;
+  targetDir:   'plugins' | 'mods';
+  version?:    string;
+  source:      'curated' | 'modrinth';
+}
+
+export interface InstalledPlugin {
+  filename:   string;
+  size:       number;
+  modifiedAt: string;
+  directory:  string;
+}
+
+/** ─── Server Database ───────────────────────────────────────────── */
+export interface ServerDatabase {
+  id:               string;
+  serverId:         string;
+  name:             string;
+  username:         string;
+  password:         string;
+  host:             string;
+  port:             number;
+  maxConnections:   number;
+  fullDbName?:      string;
+  jdbcUrl?:         string;
+  connectionString?: string;
+  createdAt:        string;
+}
+
+/** ─── Server Collaborator (Subuser) ─────────────────────────────── */
+export interface ServerSubuser {
+  id:          string;
+  userId:      string;
+  user: {
+    id:        string;
+    username:  string;
+    email:     string;
+    role:      string;
+  };
+  permissions: string[];
+  createdAt:   string;
+}
+
+/** ─── Discord Webhook ───────────────────────────────────────────── */
+export interface ServerWebhook {
+  id:        string;
+  serverId:  string;
+  name:      string;
+  url:       string;
+  events:    string[];
+  isActive:  boolean;
+  createdAt: string;
+}
+
+/** ─── Server Audit Log ──────────────────────────────────────────── */
+export interface ServerAuditLog {
+  id:        string;
+  serverId:  string;
+  action:    string;
+  details?:  string;
+  ipAddress?: string;
+  createdAt: string;
+  user?: {
+    id:       string;
+    username: string;
+    email:    string;
+    role:     string;
+  };
 }
 
 /** ─── Server ────────────────────────────────────────────────────── */

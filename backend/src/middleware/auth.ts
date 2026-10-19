@@ -1,13 +1,13 @@
 /**
  * src/middleware/auth.ts
  * ─────────────────────────────────────────────────────────────────────────────
- * JWT authentication middleware and role / ownership guards.
+ * JWT authentication middleware and role / ownership / subuser permission guards.
  *
  * Middleware:
  *  • authenticateToken  — verifies Bearer JWT, attaches decoded payload to req.user
  *  • requireAdmin       — ensures the authenticated user has the ADMIN role
- *  • requireOwnership   — ensures the server in :serverId / :id belongs to the user
- *                          (ADMINs bypass the ownership check)
+ *  • requireOwnership   — ensures the server belongs to user OR user is subuser OR admin
+ *  • requirePermission  — enforces granular permission flags for subusers
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -27,21 +27,20 @@ export interface JwtPayload {
   exp?: number;
 }
 
-// Augment Express Request to carry our decoded user
+// Augment Express Request to carry our decoded user and server context
 declare global {
   namespace Express {
     interface Request {
       user?: JwtPayload;
+      server?: any;
+      subuserPermissions?: string[];
+      isOwner?: boolean;
     }
   }
 }
 
 // ─── authenticateToken ────────────────────────────────────────────────────────
 
-/**
- * Verifies the Authorization: Bearer <token> header.
- * On success, attaches the decoded payload to req.user.
- */
 export function authenticateToken(
   req: Request,
   res: Response,
@@ -83,10 +82,6 @@ export function authenticateToken(
 
 // ─── requireAdmin ─────────────────────────────────────────────────────────────
 
-/**
- * Must be used AFTER authenticateToken.
- * Returns 403 if the user's role is not ADMIN.
- */
 export function requireAdmin(
   req: Request,
   res: Response,
@@ -103,15 +98,8 @@ export function requireAdmin(
   next();
 }
 
-// ─── requireOwnership ─────────────────────────────────────────────────────────
+// ─── requireOwnership (Owner, Admin, or Subuser) ──────────────────────────────
 
-/**
- * Must be used AFTER authenticateToken.
- * Checks that the server identified by req.params.serverId (or req.params.id)
- * belongs to req.user. ADMINs are always allowed.
- *
- * Attaches the server to req.server for downstream handlers.
- */
 export function requireOwnership(
   req: Request,
   res: Response,
@@ -134,7 +122,17 @@ export function requireOwnership(
     try {
       const server = await prisma.server.findUnique({
         where: { id: serverId },
-        select: { id: true, ownerId: true, nodeId: true, containerId: true, status: true, suspended: true },
+        select: {
+          id: true,
+          ownerId: true,
+          nodeId: true,
+          containerId: true,
+          status: true,
+          suspended: true,
+          name: true,
+          image: true,
+          dockerImage: true,
+        },
       });
 
       if (!server) {
@@ -142,18 +140,77 @@ export function requireOwnership(
         return;
       }
 
-      // ADMINs bypass ownership check
-      if (req.user.role !== Role.ADMIN && server.ownerId !== req.user.sub) {
-        res.status(403).json({ error: 'You do not have access to this server.' });
-        return;
+      req.server = server;
+
+      // 1. ADMINs always have full access
+      if (req.user.role === Role.ADMIN) {
+        req.isOwner = true;
+        req.subuserPermissions = ['*'];
+        return next();
       }
 
-      // Attach server context for downstream route handlers
-      (req as Request & { server: typeof server }).server = server;
-      next();
+      // 2. Direct Server Owner
+      if (server.ownerId === req.user.sub) {
+        req.isOwner = true;
+        req.subuserPermissions = ['*'];
+        return next();
+      }
+
+      // 3. Subuser Check
+      const subuser = await prisma.serverSubuser.findUnique({
+        where: {
+          serverId_userId: {
+            serverId: server.id,
+            userId: req.user.sub,
+          },
+        },
+      });
+
+      if (subuser) {
+        req.isOwner = false;
+        try {
+          req.subuserPermissions = JSON.parse(subuser.permissions);
+        } catch {
+          req.subuserPermissions = [];
+        }
+        return next();
+      }
+
+      res.status(403).json({ error: 'You do not have access to this server.' });
     } catch (err) {
       logger.error('Error in requireOwnership', { serverId, err });
       res.status(500).json({ error: 'Failed to verify server ownership.' });
     }
   })();
+}
+
+// ─── requirePermission ────────────────────────────────────────────────────────
+
+export function requirePermission(permission: string) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (req.user?.role === Role.ADMIN || req.isOwner) {
+      return next();
+    }
+
+    const perms = req.subuserPermissions || [];
+    const hasPerm =
+      perms.includes('*') ||
+      perms.includes(permission) ||
+      perms.some((p) => {
+        if (p.endsWith('.*')) {
+          const prefix = p.slice(0, -2);
+          return permission.startsWith(prefix);
+        }
+        return false;
+      });
+
+    if (!hasPerm) {
+      res.status(403).json({
+        error: `Insufficient permissions. Required: ${permission}`,
+      });
+      return;
+    }
+
+    next();
+  };
 }
