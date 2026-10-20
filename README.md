@@ -123,6 +123,18 @@ The installer will automatically:
 - Create systemd services for auto-start on boot
 - Run database migrations and seed initial data
 
+### Updating Arc Panel (No Data Loss)
+
+To update an existing Arc Panel installation to the latest version while preserving all database records, game servers, and configs:
+
+```bash
+# Standard update:
+curl -sSL https://raw.githubusercontent.com/shauryapatel044-dotcom/arc-panel/main/update.sh | sudo bash
+
+# Or update and switch panel port to 8050:
+curl -sSL https://raw.githubusercontent.com/shauryapatel044-dotcom/arc-panel/main/update.sh | sudo bash -s -- --port 8050
+```
+
 ### Complete Uninstaller
 
 If you ever need to completely remove Arc Panel and wipe its database:

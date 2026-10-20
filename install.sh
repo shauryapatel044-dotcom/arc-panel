@@ -6,11 +6,11 @@
 #  Usage:
 #    sudo bash install.sh
 #    sudo bash install.sh --no-update
-#    sudo bash install.sh --port 8090 --no-update
-#    curl -sSL https://raw.githubusercontent.com/shauryapatel044-dotcom/arc-panel/main/install.sh | sudo bash -s -- --no-update --port 8090
+#    sudo bash install.sh --port 8050 --no-update
+#    curl -sSL https://raw.githubusercontent.com/shauryapatel044-dotcom/arc-panel/main/install.sh | sudo bash -s -- --no-update --port 8050
 #
 #  Environment variables (alternative to flags):
-#    PANEL_PORT=8090 SKIP_UPGRADE=1 bash install.sh
+#    PANEL_PORT=8050 SKIP_UPGRADE=1 bash install.sh
 #
 #  Log file: /var/log/arc-panel-install.log
 # =============================================================================
@@ -169,13 +169,13 @@ check_port_in_use() {
 if [[ -z "$PANEL_PORT" ]]; then
   if check_port_in_use 8080; then
     log_warn "Port 8080 is already in use by another process on this VPS!"
-    for candidate in 8090 8081 8088 3000 8443; do
+    for candidate in 8050 8090 8081 8088 3000 8443; do
       if ! check_port_in_use "$candidate"; then
         PANEL_PORT="$candidate"
         break
       fi
     done
-    PANEL_PORT="${PANEL_PORT:-8090}"
+    PANEL_PORT="${PANEL_PORT:-8050}"
     log_info "Auto-selected available port ${GREEN}${PANEL_PORT}${NC} for Arc Panel Frontend."
   else
     PANEL_PORT=8080
