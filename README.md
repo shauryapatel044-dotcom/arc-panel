@@ -35,6 +35,9 @@ Arc Panel is an open-source alternative to Pterodactyl Panel, designed for simpl
 | 🗄️ **Server Databases** | On-demand isolated MariaDB databases provisioned per server with JDBC/CLI strings |
 | 👥 **Team & Sub-Users** | Invite collaborators with granular permissions (power, console, files, backups, DBs) |
 | 🔔 **Discord Webhooks & Audit** | Real-time crash & power state Discord alerts, plus complete server audit trail |
+| 🌐 **Custom Domains** | Client custom domain setup with auto-generated SRV, CNAME, and A DNS records & verification |
+| 🐙 **GitHub Repo Sync** | Connect GitHub repositories via Personal Access Token (`ghp_...`) with branch selection & auto-pull webhooks |
+| 🚇 **Tunnel & Non-IPv4 VPS** | Admin node domains, fallback VPS IP, and Playit.gg / Cloudflare Tunnel gating for private hosts |
 | 🔌 **Port & Network Manager** | Multi-port allocations with 1-click presets for Geyser Bedrock, Dynmap, and Voice Chat |
 | 📁 **File Manager** | Browser-based code/config editor, drag-and-drop uploads, and secure SFTP access |
 | 🖥️ **Live Console** | Ultra-low-latency xterm.js terminal stream with container command stdin |

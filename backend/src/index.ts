@@ -60,6 +60,8 @@ import databaseRoutes from './routes/databases';
 import subuserRoutes from './routes/subusers';
 import webhookRoutes from './routes/webhooks';
 import networkRoutes from './routes/network';
+import gitRoutes from './routes/git';
+import domainRoutes from './routes/domains';
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
@@ -175,6 +177,10 @@ app.use('/api/servers/:serverId/subusers', subuserRoutes);
 app.use('/api/subusers/:serverId', subuserRoutes);
 app.use('/api/servers/:serverId/network', networkRoutes);
 app.use('/api/network/:serverId', networkRoutes);
+app.use('/api/servers/:serverId/git', gitRoutes);
+app.use('/api/git/:serverId', gitRoutes);
+app.use('/api/servers/:serverId/domains', domainRoutes);
+app.use('/api/domains/:serverId', domainRoutes);
 app.use('/api/servers/:serverId', webhookRoutes);
 
 // Admin routes (/api/admin/stats, /api/admin/users, /api/admin/servers, /api/admin/nodes)

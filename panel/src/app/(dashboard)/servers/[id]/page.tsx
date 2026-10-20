@@ -37,6 +37,8 @@ import {
   Database,
   Users,
   Bell,
+  FolderGit2,
+  Lock,
 } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -52,6 +54,7 @@ import DatabaseManager from '@/components/dashboard/DatabaseManager';
 import SubuserManager from '@/components/dashboard/SubuserManager';
 import WebhookManager from '@/components/dashboard/WebhookManager';
 import NetworkManager from '@/components/dashboard/NetworkManager';
+import GitManager from '@/components/dashboard/GitManager';
 import { useAuth } from '@/hooks/useAuth';
 import { useServerStats } from '@/hooks/useServerStats';
 import { serverApi, backupApi } from '@/lib/api';
@@ -66,6 +69,7 @@ type TabKey =
   | 'plugins'
   | 'databases'
   | 'network'
+  | 'git'
   | 'users'
   | 'backups'
   | 'webhooks'
@@ -514,6 +518,26 @@ export default function ServerDetailPage() {
   const selectedReinstallEgg =
     EGG_CATALOG.find((e) => e.slug === reinstallEggSlug) ?? EGG_CATALOG[0];
 
+  const isNonIpv4 = server.node?.isIpv4 === false;
+  const isTunnelActive =
+    server.tunnelStatus === 'ACTIVE' || server.node?.tunnelStatus === 'ACTIVE';
+  const effectiveTunnelAddress =
+    server.tunnelAddress || server.node?.tunnelAddress;
+  const primaryPort = server.allocation?.port ?? 25500;
+
+  let resolvedConnectionText = `${server.allocation?.ip ?? '127.0.0.1'}:${primaryPort}`;
+  if (isNonIpv4 && !isTunnelActive) {
+    resolvedConnectionText = 'Awaiting Admin Tunnel (Playit / Cloudflare)';
+  } else if (server.customDomain) {
+    resolvedConnectionText = server.customDomain;
+  } else if (isTunnelActive && effectiveTunnelAddress) {
+    resolvedConnectionText = effectiveTunnelAddress;
+  } else if (server.node?.domain) {
+    resolvedConnectionText = `${server.node.domain}:${primaryPort}`;
+  } else if (server.node?.publicIp) {
+    resolvedConnectionText = `${server.node.publicIp}:${primaryPort}`;
+  }
+
   const TABS: Array<{
     key: TabKey;
     label: string;
@@ -524,7 +548,8 @@ export default function ServerDetailPage() {
     { key: 'files', label: 'File Manager', icon: FolderOpen },
     { key: 'plugins', label: 'Plugins & Mods', icon: Puzzle },
     { key: 'databases', label: 'Databases', icon: Database },
-    { key: 'network', label: 'Network & Ports', icon: Network },
+    { key: 'network', label: 'Network & Domains', icon: Network },
+    { key: 'git', label: 'GitHub Sync', icon: FolderGit2 },
     { key: 'users', label: 'Team Access', icon: Users },
     { key: 'backups', label: 'Backups', icon: Archive },
     { key: 'webhooks', label: 'Alerts & Logs', icon: Bell },
@@ -593,13 +618,20 @@ export default function ServerDetailPage() {
                   </span>
                 </button>
               )}
+
+              {isNonIpv4 && !isTunnelActive && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+                  <Lock className="h-3.5 w-3.5 text-amber-400" />
+                  <span>Awaiting Admin Tunnel</span>
+                </span>
+              )}
             </div>
             <p className="mt-0.5 font-mono text-xs text-white/45">
               ID: {server.id.slice(0, 12)} • Egg: {server.eggId} (
               {server.environment?.VERSION || 'latest'}) •{' '}
-              {server.allocation
-                ? `${server.allocation.ip}:${server.allocation.port}`
-                : 'Port 25500'}
+              <strong className={cn('font-semibold', isNonIpv4 && !isTunnelActive ? 'text-amber-400' : 'text-arc-cyan-400')}>
+                {resolvedConnectionText}
+              </strong>
               {isPythonServer && ` • Entrypoint: python ${pythonFile} (Auto-Stops on Done)`}
             </p>
           </div>
@@ -645,6 +677,21 @@ export default function ServerDetailPage() {
           </GlassButton>
         </div>
       </GlassCard>
+
+      {/* Non-IPv4 locked warning banner */}
+      {isNonIpv4 && !isTunnelActive && (
+        <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent p-4 text-xs text-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+          <div className="flex items-center gap-2.5 font-bold text-amber-300">
+            <Lock className="h-4 w-4" />
+            <span>Non-IPv4 Host Node — Public Connection Locked</span>
+          </div>
+          <p className="mt-1 text-white/70">
+            This server is hosted on a private / non-IPv4 host node. Your administrator must configure a{' '}
+            <strong className="text-white">Playit.gg</strong> tunnel or{' '}
+            <strong className="text-white">Cloudflare Tunnel</strong> on this server port before public connections can reach your server.
+          </p>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-1.5 backdrop-blur-xl">
@@ -887,9 +934,14 @@ export default function ServerDetailPage() {
         </div>
       )}
 
-      {/* ── TAB 6: NETWORK & PORTS ────────────────────────────────── */}
+      {/* ── TAB 6: NETWORK & DOMAINS ──────────────────────────────── */}
       {activeTab === 'network' && (
         <NetworkManager serverId={server.id} />
+      )}
+
+      {/* ── TAB: GITHUB REPO SYNC ─────────────────────────────────── */}
+      {activeTab === 'git' && (
+        <GitManager serverId={server.id} />
       )}
 
       {/* ── TAB 7: TEAM ACCESS / COLLABORATORS ────────────────────── */}

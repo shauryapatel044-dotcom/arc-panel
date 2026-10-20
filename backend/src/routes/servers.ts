@@ -280,9 +280,10 @@ router.get('/', async (req: Request, res: Response) => {
     const servers = await prisma.server.findMany({
       where: isAdmin ? {} : { ownerId: userId },
       include: {
-        allocations: { select: { id: true, ip: true, port: true, isAssigned: true } },
-        node: { select: { id: true, name: true, fqdn: true, isOnline: true } },
+        allocations: { select: { id: true, ip: true, port: true, isAssigned: true, isPrimary: true, notes: true } },
+        node: { select: { id: true, name: true, fqdn: true, domain: true, publicIp: true, isIpv4: true, tunnelType: true, tunnelAddress: true, tunnelStatus: true, isOnline: true } },
         owner: { select: { id: true, username: true, email: true } },
+        domains: true,
         _count: { select: { backups: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -395,9 +396,10 @@ router.get('/:id', requireOwnership, async (req: Request, res: Response) => {
     const server = await prisma.server.findUnique({
       where: { id: req.params.id },
       include: {
-        allocations: { select: { id: true, ip: true, port: true } },
-        node: { select: { id: true, name: true, fqdn: true, isOnline: true } },
+        allocations: { select: { id: true, ip: true, port: true, isAssigned: true, isPrimary: true, notes: true } },
+        node: { select: { id: true, name: true, fqdn: true, domain: true, publicIp: true, isIpv4: true, tunnelType: true, tunnelAddress: true, tunnelStatus: true, isOnline: true } },
         owner: { select: { id: true, username: true, email: true } },
+        domains: true,
         _count: { select: { backups: true } },
       },
     });

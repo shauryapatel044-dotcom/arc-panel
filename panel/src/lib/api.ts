@@ -302,4 +302,28 @@ export const networkApi = {
                  api.patch(`/servers/${serverId}/network/${allocId}/notes`, { notes }),
 };
 
+/** Custom Domain & Connection Resolution endpoints */
+export const domainApi = {
+  get:         (serverId: string) => api.get(`/servers/${serverId}/domains`),
+  add:         (serverId: string, body: { domain: string; recordType?: string }) =>
+                 api.post(`/servers/${serverId}/domains`, body),
+  verify:      (serverId: string, domainId: string) =>
+                 api.post(`/servers/${serverId}/domains/${domainId}/verify`),
+  delete:      (serverId: string, domainId: string) =>
+                 api.delete(`/servers/${serverId}/domains/${domainId}`),
+};
+
+/** GitHub Repository Integration endpoints */
+export const gitApi = {
+  get:         (serverId: string) => api.get(`/servers/${serverId}/git`),
+  test:        (serverId: string, body: { repo: string; token: string }) =>
+                 api.post(`/servers/${serverId}/git/test`, body),
+  branches:    (serverId: string, body: { repo: string; token?: string }) =>
+                 api.post(`/servers/${serverId}/git/branches`, body),
+  connect:     (serverId: string, body: { repo: string; token: string; branch?: string; targetDir?: string; autoDeploy?: boolean }) =>
+                 api.post(`/servers/${serverId}/git/connect`, body),
+  pull:        (serverId: string) => api.post(`/servers/${serverId}/git/pull`),
+  disconnect:  (serverId: string) => api.delete(`/servers/${serverId}/git`),
+};
+
 export default api;

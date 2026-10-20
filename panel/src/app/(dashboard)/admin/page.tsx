@@ -22,6 +22,11 @@ import {
   WifiOff,
   X,
   ArrowUpRight,
+  Globe,
+  Lock,
+  ShieldAlert,
+  Radio,
+  CheckCircle2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import GlassCard from '@/components/ui/GlassCard';
@@ -34,6 +39,13 @@ interface NodeOverview {
   id: string;
   name: string;
   fqdn: string;
+  domain?: string | null;
+  publicIp?: string | null;
+  isIpv4?: boolean;
+  tunnelType?: 'NONE' | 'PLAYIT' | 'CLOUDFLARE';
+  tunnelAddress?: string | null;
+  tunnelToken?: string | null;
+  tunnelStatus?: 'ACTIVE' | 'PENDING_SETUP' | 'OFFLINE';
   port: number;
   isOnline: boolean;
   totalRamMB: number;
@@ -95,10 +107,24 @@ export default function AdminOverviewPage() {
   const [showNodeModal, setShowNodeModal] = useState(false);
   const [nodeName, setNodeName] = useState('');
   const [nodeFqdn, setNodeFqdn] = useState('');
+  const [nodeDomain, setNodeDomain] = useState('');
+  const [nodePublicIp, setNodePublicIp] = useState('');
+  const [nodeIsIpv4, setNodeIsIpv4] = useState(true);
   const [nodePort, setNodePort] = useState(8085);
   const [nodeToken, setNodeToken] = useState('');
   const [nodeRam, setNodeRam] = useState(16384);
   const [creatingNode, setCreatingNode] = useState(false);
+
+  // Edit Node Domain & Tunnel Modal state
+  const [editingNode, setEditingNode] = useState<NodeOverview | null>(null);
+  const [editDomain, setEditDomain] = useState('');
+  const [editPublicIp, setEditPublicIp] = useState('');
+  const [editIsIpv4, setEditIsIpv4] = useState(true);
+  const [editTunnelType, setEditTunnelType] = useState<'NONE' | 'PLAYIT' | 'CLOUDFLARE'>('NONE');
+  const [editTunnelAddress, setEditTunnelAddress] = useState('');
+  const [editTunnelToken, setEditTunnelToken] = useState('');
+  const [editTunnelStatus, setEditTunnelStatus] = useState<'ACTIVE' | 'PENDING_SETUP' | 'OFFLINE'>('OFFLINE');
+  const [savingNodeConfig, setSavingNodeConfig] = useState(false);
 
   /* ── Load Global Stats + Nodes (Polled Live Every 2s) ─────────── */
   const fetchGlobalStats = useCallback(async (silent = false) => {
@@ -160,6 +186,9 @@ export default function AdminOverviewPage() {
       await nodeApi.create({
         name: nodeName.trim(),
         fqdn: nodeFqdn.trim(),
+        domain: nodeDomain.trim() || undefined,
+        publicIp: nodePublicIp.trim() || undefined,
+        isIpv4: nodeIsIpv4,
         port: Number(nodePort),
         daemonToken: nodeToken.trim() || undefined,
         totalMemory: Number(nodeRam),
@@ -167,6 +196,8 @@ export default function AdminOverviewPage() {
       toast.success(`Connected node "${nodeName.trim()}"`);
       setNodeName('');
       setNodeFqdn('');
+      setNodeDomain('');
+      setNodePublicIp('');
       setNodeToken('');
       setShowNodeModal(false);
       await fetchGlobalStats(false);
@@ -174,6 +205,43 @@ export default function AdminOverviewPage() {
       toast.error('Failed to register node.');
     } finally {
       setCreatingNode(false);
+    }
+  };
+
+  /* ── Open Edit Node Domain & Tunnel ───────────────────────────── */
+  const handleOpenEditNode = (node: NodeOverview) => {
+    setEditingNode(node);
+    setEditDomain(node.domain || '');
+    setEditPublicIp(node.publicIp || '');
+    setEditIsIpv4(node.isIpv4 ?? true);
+    setEditTunnelType(node.tunnelType || 'NONE');
+    setEditTunnelAddress(node.tunnelAddress || '');
+    setEditTunnelToken(node.tunnelToken || '');
+    setEditTunnelStatus(node.tunnelStatus || 'OFFLINE');
+  };
+
+  /* ── Save Node Domain & Tunnel Configuration ─────────────────── */
+  const handleSaveNodeConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingNode) return;
+    setSavingNodeConfig(true);
+    try {
+      await nodeApi.update(editingNode.id, {
+        domain: editDomain.trim() || null,
+        publicIp: editPublicIp.trim() || null,
+        isIpv4: editIsIpv4,
+        tunnelType: editTunnelType,
+        tunnelAddress: editTunnelAddress.trim() || null,
+        tunnelToken: editTunnelToken.trim() || null,
+        tunnelStatus: editTunnelStatus,
+      });
+      toast.success(`Updated domain & tunnel configuration for "${editingNode.name}"`);
+      setEditingNode(null);
+      await fetchGlobalStats(false);
+    } catch {
+      toast.error('Failed to update node configuration.');
+    } finally {
+      setSavingNodeConfig(false);
     }
   };
 
@@ -478,32 +546,64 @@ export default function AdminOverviewPage() {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-base font-bold text-white">
-                    {node.name}
-                  </h3>
-                  <p className="font-mono text-xs text-white/50">
-                    {node.fqdn}:{node.port}
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-white">
+                      {node.name}
+                    </h3>
+                    {node.isIpv4 === false ? (
+                      node.tunnelStatus === 'ACTIVE' ? (
+                        <span className="rounded bg-purple-500/20 px-2 py-0.5 text-[10px] font-bold text-purple-300">
+                          {node.tunnelType} Tunnel
+                        </span>
+                      ) : (
+                        <span className="rounded bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                          Non-IPv4 (No Tunnel)
+                        </span>
+                      )
+                    ) : (
+                      <span className="rounded bg-arc-cyan-400/20 px-2 py-0.5 text-[10px] font-bold text-arc-cyan-300">
+                        IPv4 Direct
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 font-mono text-xs text-white/50">
+                    Endpoint:{' '}
+                    {node.domain ? (
+                      <strong className="text-arc-cyan-400">{node.domain}</strong>
+                    ) : (
+                      <strong className="text-white/80">{node.publicIp || node.fqdn}</strong>
+                    )}
                   </p>
                 </div>
 
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold',
-                    node.isOnline
-                      ? 'border-arc-cyan-400/35 bg-arc-cyan-400/12 text-arc-cyan-400'
-                      : 'border-arc-orange-400/35 bg-arc-orange-400/12 text-arc-orange-400',
-                  )}
-                >
-                  {node.isOnline ? (
-                    <>
-                      <Wifi className="h-3.5 w-3.5" /> Online
-                    </>
-                  ) : (
-                    <>
-                      <WifiOff className="h-3.5 w-3.5" /> Offline
-                    </>
-                  )}
-                </span>
+                <div className="flex items-center gap-2">
+                  <GlassButton
+                    variant="secondary"
+                    size="xs"
+                    onClick={() => handleOpenEditNode(node)}
+                    leftIcon={<Globe className="h-3 w-3" />}
+                  >
+                    Domain & Tunnel
+                  </GlassButton>
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold',
+                      node.isOnline
+                        ? 'border-arc-cyan-400/35 bg-arc-cyan-400/12 text-arc-cyan-400'
+                        : 'border-arc-orange-400/35 bg-arc-orange-400/12 text-arc-orange-400',
+                    )}
+                  >
+                    {node.isOnline ? (
+                      <>
+                        <Wifi className="h-3.5 w-3.5" /> Online
+                      </>
+                    ) : (
+                      <>
+                        <WifiOff className="h-3.5 w-3.5" /> Offline
+                      </>
+                    )}
+                  </span>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-xs sm:grid-cols-4">
@@ -626,6 +726,154 @@ export default function AdminOverviewPage() {
                     isLoading={creatingNode}
                   >
                     Register & Handshake
+                  </GlassButton>
+                </div>
+              </form>
+            </GlassCard>
+          </motion.div>
+        )}
+
+        {/* Edit Node Domain & Tunnel Modal */}
+        {editingNode && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
+          >
+            <GlassCard
+              hoverable={false}
+              accentColor="cyan"
+              className="w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-arc-cyan-400" />
+                  <h3 className="text-base font-bold text-white">
+                    Node Domain & Connectivity — {editingNode.name}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingNode(null)}
+                  className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveNodeConfig} className="mt-4 flex flex-col gap-4">
+                <GlassInput
+                  label="Node Public Domain (Optional)"
+                  placeholder="node1.arcpanel.gg"
+                  value={editDomain}
+                  onChange={(e) => setEditDomain(e.target.value)}
+                  helper="If set, clients will see this domain. If left blank, clients connect via VPS IP."
+                />
+
+                <GlassInput
+                  label="VPS Public IPv4 Address (Fallback)"
+                  placeholder="142.250.190.46"
+                  value={editPublicIp}
+                  onChange={(e) => setEditPublicIp(e.target.value)}
+                  helper="Direct host IP address shown to clients when no domain is configured."
+                />
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-white/70">
+                    Host Network Architecture
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setEditIsIpv4(true)}
+                      className={cn(
+                        'rounded-xl border p-3 text-left transition',
+                        editIsIpv4
+                          ? 'border-arc-cyan-400/50 bg-arc-cyan-400/10 text-white'
+                          : 'border-white/10 bg-white/[0.02] text-white/50 hover:bg-white/5'
+                      )}
+                    >
+                      <span className="block text-xs font-bold text-arc-cyan-300">Public IPv4 VPS</span>
+                      <span className="mt-0.5 block text-[11px] text-white/40">Direct port access</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditIsIpv4(false)}
+                      className={cn(
+                        'rounded-xl border p-3 text-left transition',
+                        !editIsIpv4
+                          ? 'border-amber-500/50 bg-amber-500/10 text-white'
+                          : 'border-white/10 bg-white/[0.02] text-white/50 hover:bg-white/5'
+                      )}
+                    >
+                      <span className="block text-xs font-bold text-amber-300">Non-IPv4 / NAT / IPv6</span>
+                      <span className="mt-0.5 block text-[11px] text-white/40">Requires tunnel</span>
+                    </button>
+                  </div>
+                </div>
+
+                {!editIsIpv4 && (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.05] p-3.5 flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
+                      <ShieldAlert className="h-4 w-4" />
+                      <span>Non-IPv4 VPS Tunnel Configuration</span>
+                    </div>
+                    <p className="text-[11px] text-white/60">
+                      Since this VPS has no public IPv4, clients cannot view or connect until you configure Playit.gg or Cloudflare Tunnel.
+                    </p>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-white/70">Tunnel Provider</label>
+                      <select
+                        value={editTunnelType}
+                        onChange={(e) => setEditTunnelType(e.target.value as 'NONE' | 'PLAYIT' | 'CLOUDFLARE')}
+                        className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white outline-none focus:border-arc-cyan-400"
+                      >
+                        <option value="NONE">Select Tunnel Provider...</option>
+                        <option value="PLAYIT">Playit.gg (Recommended for Game Servers & UDP)</option>
+                        <option value="CLOUDFLARE">Cloudflare Tunnel (cloudflared)</option>
+                      </select>
+                    </div>
+
+                    <GlassInput
+                      label="Tunnel Public Address"
+                      placeholder="something.gl.joinmc.link:25565 or play.mydomain.com"
+                      value={editTunnelAddress}
+                      onChange={(e) => setEditTunnelAddress(e.target.value)}
+                      helper="The public address assigned by Playit or Cloudflare"
+                    />
+
+                    <GlassInput
+                      label="Tunnel Secret Token / Claim Code"
+                      placeholder="playit secret key or cloudflared token"
+                      type="password"
+                      value={editTunnelToken}
+                      onChange={(e) => setEditTunnelToken(e.target.value)}
+                    />
+
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-white/70">Tunnel Status</label>
+                      <select
+                        value={editTunnelStatus}
+                        onChange={(e) => setEditTunnelStatus(e.target.value as 'ACTIVE' | 'PENDING_SETUP' | 'OFFLINE')}
+                        className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white outline-none focus:border-arc-cyan-400"
+                      >
+                        <option value="OFFLINE">Offline</option>
+                        <option value="PENDING_SETUP">Pending Setup (Locked to Clients)</option>
+                        <option value="ACTIVE">Active (Clients Can Connect)</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-2 flex justify-end gap-2 border-t border-white/10 pt-3">
+                  <GlassButton type="button" variant="ghost" onClick={() => setEditingNode(null)}>
+                    Cancel
+                  </GlassButton>
+                  <GlassButton type="submit" variant="primary" isLoading={savingNodeConfig}>
+                    Save Node Configuration
                   </GlassButton>
                 </div>
               </form>

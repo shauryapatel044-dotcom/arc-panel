@@ -34,6 +34,13 @@ export interface Node {
   id:          string;
   name:        string;
   fqdn:        string;           // Fully-qualified domain name / IP
+  domain?:     string | null;    // Custom domain set by admin
+  publicIp?:   string | null;    // VPS public IPv4
+  isIpv4?:     boolean;          // Whether node has native public IPv4
+  tunnelType?: 'NONE' | 'PLAYIT' | 'CLOUDFLARE';
+  tunnelAddress?: string | null;
+  tunnelToken?: string | null;
+  tunnelStatus?: 'ACTIVE' | 'PENDING_SETUP' | 'OFFLINE';
   port:        number;           // Daemon port
   status:      NodeStatus;
   /** Total RAM in MB */
@@ -170,7 +177,7 @@ export interface Server {
   ownerId:     string;
   owner?:      Pick<User, 'id' | 'username' | 'email'>;
   nodeId:      string;
-  node?:       Pick<Node, 'id' | 'name' | 'fqdn'>;
+  node?:       Pick<Node, 'id' | 'name' | 'fqdn' | 'domain' | 'publicIp' | 'isIpv4' | 'tunnelType' | 'tunnelAddress' | 'tunnelStatus'>;
   status:      ServerStatus;
   limits:      ServerLimits;
   /** Primary allocation */
@@ -184,6 +191,18 @@ export interface Server {
   dockerImage: string;
   /** Environment variables set on the server */
   environment: Record<string, string>;
+  customDomain?: string | null;
+  tunnelAddress?: string | null;
+  tunnelType?: string | null;
+  tunnelStatus?: string | null;
+  githubRepo?: string | null;
+  githubBranch?: string | null;
+  githubTargetDir?: string | null;
+  githubAutoDeploy?: boolean;
+  githubLastSync?: string | null;
+  githubLastCommit?: string | null;
+  githubLastMessage?: string | null;
+  domains?: ServerDomain[];
   createdAt:   string;
   updatedAt:   string;
 }
@@ -303,3 +322,68 @@ export interface TwoFactorSetupResponse {
   /** base64 PNG of the QR code */
   qrCodeDataUrl: string;
 }
+
+/** ─── Custom Domains ───────────────────────────────────────────── */
+export interface ServerDomain {
+  id:         string;
+  serverId:   string;
+  domain:     string;
+  recordType: 'SRV' | 'CNAME' | 'A';
+  targetHost: string;
+  targetPort?: number;
+  isVerified: boolean;
+  createdAt:  string;
+  updatedAt:  string;
+}
+
+export interface DnsInstruction {
+  type: string;
+  name: string;
+  target: string;
+  port?: number;
+  priority?: number;
+  weight?: number;
+  ttl?: number;
+}
+
+export interface ServerConnectionInfo {
+  status: 'DIRECT_IP' | 'NODE_DOMAIN' | 'TUNNEL_ACTIVE' | 'REQUIRES_TUNNEL';
+  displayAddress: string | null;
+  customDomainAddress: string | null;
+  nodeDomain: string | null;
+  vpsIp: string;
+  isIpv4: boolean;
+  primaryPort: number;
+  tunnel: {
+    type: string;
+    address: string | null;
+    status: string;
+    isActive: boolean;
+  };
+  tunnelWarning: string | null;
+}
+
+/** ─── GitHub Integration ───────────────────────────────────────── */
+export interface GitConfig {
+  configured: boolean;
+  repo: string | null;
+  branch: string;
+  targetDir: string;
+  autoDeploy: boolean;
+  lastSync: string | null;
+  lastCommit: string | null;
+  lastMessage: string | null;
+  maskedToken: string | null;
+  webhookUrl: string;
+}
+
+export interface GitRepoTestInfo {
+  valid: boolean;
+  owner: string;
+  repo: string;
+  fullName: string;
+  defaultBranch: string;
+  isPrivate: boolean;
+  description: string;
+}
+

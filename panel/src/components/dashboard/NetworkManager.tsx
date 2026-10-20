@@ -26,6 +26,7 @@ import GlassButton from '@/components/ui/GlassButton';
 import { networkApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import type { Allocation } from '@/types';
+import DomainManager from './DomainManager';
 
 interface NetworkManagerProps {
   serverId: string;
@@ -135,6 +136,9 @@ export default function NetworkManager({ serverId }: NetworkManagerProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* ── Domains, Connection Endpoint & Tunnel Warning Hub ── */}
+      <DomainManager serverId={serverId} />
+
       {/* Header Card */}
       <GlassCard hoverable={false} accentColor="cyan">
         <div className="flex flex-wrap items-center justify-between gap-4">

@@ -84,6 +84,23 @@ model Server {
   /// Startup command override
   startupCmd  String?      @db.VarChar(512)
   suspended   Boolean      @default(false)
+  /// Custom domain added by the client (e.g. "play.mycustomdomain.com")
+  customDomain      String?   @db.VarChar(255)
+  /// Specific tunnel address for this server port if overridden
+  tunnelAddress     String?   @db.VarChar(255)
+  tunnelType        String?   @db.VarChar(32)
+  tunnelStatus      String?   @db.VarChar(32)
+
+  /// GitHub Repository Integration
+  githubRepo        String?   @db.VarChar(255)
+  githubBranch      String?   @default("main") @db.VarChar(64)
+  githubToken       String?   @db.VarChar(255)
+  githubTargetDir   String?   @default("/") @db.VarChar(255)
+  githubAutoDeploy  Boolean   @default(false)
+  githubLastSync    DateTime?
+  githubLastCommit  String?   @db.VarChar(128)
+  githubLastMessage String?   @db.VarChar(255)
+
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -93,6 +110,7 @@ model Server {
   databases   ServerDatabase[]
   auditLogs   ServerAuditLog[]
   webhooks    ServerWebhook[]
+  domains     ServerDomain[]
 
   @@index([ownerId])
   @@index([nodeId])
@@ -105,6 +123,20 @@ model Node {
   name        String   @unique @db.VarChar(64)
   /// Fully qualified domain name or IP
   fqdn        String   @db.VarChar(255)
+  /// Custom domain configured by admin for this node (e.g. "node1.arcpanel.gg")
+  domain        String?  @db.VarChar(255)
+  /// Public IPv4 address of the VPS (fallback if no domain configured)
+  publicIp      String?  @db.VarChar(45)
+  /// Whether the node has a direct public IPv4 address
+  isIpv4        Boolean  @default(true)
+  /// Tunnel provider for non-IPv4 nodes ("NONE" | "PLAYIT" | "CLOUDFLARE")
+  tunnelType    String   @default("NONE") @db.VarChar(32)
+  /// Public tunnel address (e.g. "mc.joinmc.link:25565" or "tunnel.mydomain.com")
+  tunnelAddress String?  @db.VarChar(255)
+  /// Tunnel secret token or claim code
+  tunnelToken   String?  @db.VarChar(255)
+  /// Tunnel status ("ACTIVE" | "PENDING_SETUP" | "OFFLINE")
+  tunnelStatus  String   @default("OFFLINE") @db.VarChar(32)
   port        Int      @default(8085)
   /// Secret token used to authenticate panel→daemon requests (Bearer)
   daemonToken String   @db.VarChar(255)
@@ -266,4 +298,21 @@ model ServerWebhook {
 
   @@index([serverId])
   @@map("server_webhooks")
+}
+
+/// Custom domains configured by server clients
+model ServerDomain {
+  id         String   @id @default(cuid())
+  serverId   String
+  server     Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  domain     String   @db.VarChar(255)
+  recordType String   @default("SRV") @db.VarChar(16)
+  targetHost String   @db.VarChar(255)
+  targetPort Int?
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([serverId])
+  @@map("server_domains")
 }

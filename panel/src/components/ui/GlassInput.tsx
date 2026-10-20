@@ -13,6 +13,7 @@ interface GlassInputProps
   label?:       string;
   error?:       string;
   hint?:        string;
+  helper?:      string;
   leftIcon?:    React.ReactNode;
   rightIcon?:   React.ReactNode;
   containerCls?: string;
@@ -24,6 +25,7 @@ const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(
       label,
       error,
       hint,
+      helper,
       leftIcon,
       rightIcon,
       className,
@@ -35,6 +37,7 @@ const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(
   ) => {
     const autoId = useId();
     const id     = externalId ?? autoId;
+    const effectiveHint = hint || helper;
 
     return (
       <div className={cn('flex flex-col gap-1.5', containerCls)}>
@@ -124,10 +127,10 @@ const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(
           </p>
         )}
 
-        {/* Hint */}
-        {!error && hint && (
+        {/* Hint / Helper */}
+        {!error && effectiveHint && (
           <p id={`${id}-hint`} className="text-xs text-white/35">
-            {hint}
+            {effectiveHint}
           </p>
         )}
       </div>

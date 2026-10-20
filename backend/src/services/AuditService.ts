@@ -57,6 +57,13 @@ class AuditService {
   }
 
   /**
+   * Alias for logAction
+   */
+  async log(entry: AuditLogEntry): Promise<void> {
+    return this.logAction(entry);
+  }
+
+  /**
    * Fetch recent audit logs for a server with user details.
    */
   async getRecentLogs(serverId: string, limit = 50) {
