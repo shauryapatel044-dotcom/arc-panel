@@ -5,12 +5,61 @@
 #
 #  Usage:
 #    sudo bash install.sh
-#    sudo REPO_URL=https://github.com/you/arc-panel bash install.sh
+#    sudo bash install.sh --no-update
+#    sudo bash install.sh --port 8090 --no-update
+#    curl -sSL https://raw.githubusercontent.com/shauryapatel044-dotcom/arc-panel/main/install.sh | sudo bash -s -- --no-update --port 8090
+#
+#  Environment variables (alternative to flags):
+#    PANEL_PORT=8090 SKIP_UPGRADE=1 bash install.sh
 #
 #  Log file: /var/log/arc-panel-install.log
 # =============================================================================
 
 set -euo pipefail
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CLI arguments & environment configuration
+# ─────────────────────────────────────────────────────────────────────────────
+PANEL_PORT="${PANEL_PORT:-}"
+SKIP_UPGRADE="${SKIP_UPGRADE:-${NO_UPDATE:-0}}"
+REPO_URL="${REPO_URL:-https://github.com/shauryapatel044-dotcom/arc-panel.git}"
+GIT_BRANCH="${GIT_BRANCH:-main}"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-update|--no-upgrade|--skip-upgrade)
+      SKIP_UPGRADE=1
+      shift
+      ;;
+    --port|--panel-port)
+      PANEL_PORT="$2"
+      shift 2
+      ;;
+    --port=*)
+      PANEL_PORT="${1#*=}"
+      shift
+      ;;
+    --panel-port=*)
+      PANEL_PORT="${1#*=}"
+      shift
+      ;;
+    --repo|--repo-url)
+      REPO_URL="$2"
+      shift 2
+      ;;
+    --branch)
+      GIT_BRANCH="$2"
+      shift 2
+      ;;
+    http*://*.git|git@*.git)
+      REPO_URL="$1"
+      shift
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECTION 0 — Colour Codes & Logging helpers
@@ -85,15 +134,14 @@ cat << 'EOF'
           Production-ready Game Server Control Panel
 EOF
 echo -e "${NC}"
-echo -e "${BLUE}${BOLD}  Version  :${NC} 1.0.0"
-echo -e "${BLUE}${BOLD}  Platform :${NC} Ubuntu $UBUNTU_VERSION"
-echo -e "${BLUE}${BOLD}  Log File :${NC} $LOG_FILE"
-echo -e "${BLUE}${BOLD}  Date     :${NC} $(date '+%Y-%m-%d %H:%M:%S %Z')"
+echo -e "${BLUE}${BOLD}  Version     :${NC} 1.0.0"
+echo -e "${BLUE}${BOLD}  Platform    :${NC} Ubuntu $UBUNTU_VERSION"
+echo -e "${BLUE}${BOLD}  Log File    :${NC} $LOG_FILE"
+echo -e "${BLUE}${BOLD}  Date        :${NC} $(date '+%Y-%m-%d %H:%M:%S %Z')"
 echo ""
 echo -e "${YELLOW}  This installer will set up MariaDB, Docker, Node.js, and all Arc Panel"
-echo -e "  services. Estimated time: 10–20 minutes on a fresh VPS.${NC}"
+echo -e "  services. Estimated time: 5–15 minutes on a fresh VPS.${NC}"
 echo ""
-sleep 2
 
 # ── 1.4  Detect server IP ─────────────────────────────────────────────────────
 log_step "Detecting server IP address..."
@@ -103,12 +151,50 @@ SERVER_IP=$(curl -4 -fsSL --connect-timeout 5 https://api.ipify.org 2>/dev/null 
             echo "127.0.0.1")
 log_ok "Server IP detected: $SERVER_IP"
 
-# ── 1.5  Initialise log file ──────────────────────────────────────────────────
+# ── 1.5  Panel Port Resolution & Availability Check ───────────────────────────
+check_port_in_use() {
+  local p="$1"
+  if command -v ss &>/dev/null; then
+    ss -tuln 2>/dev/null | grep -qE "(:|\])${p}\b" && return 0
+  fi
+  if command -v netstat &>/dev/null; then
+    netstat -tuln 2>/dev/null | grep -qE "(:|\])${p}\b" && return 0
+  fi
+  if command -v lsof &>/dev/null; then
+    lsof -i ":${p}" &>/dev/null && return 0
+  fi
+  return 1
+}
+
+if [[ -z "$PANEL_PORT" ]]; then
+  if check_port_in_use 8080; then
+    log_warn "Port 8080 is already in use by another process on this VPS!"
+    for candidate in 8090 8081 8088 3000 8443; do
+      if ! check_port_in_use "$candidate"; then
+        PANEL_PORT="$candidate"
+        break
+      fi
+    done
+    PANEL_PORT="${PANEL_PORT:-8090}"
+    log_info "Auto-selected available port ${GREEN}${PANEL_PORT}${NC} for Arc Panel Frontend."
+  else
+    PANEL_PORT=8080
+  fi
+else
+  log_info "Using user-specified panel port: ${GREEN}${PANEL_PORT}${NC}"
+fi
+
+echo -e "${BLUE}${BOLD}  Panel Port  :${NC} ${GREEN}${PANEL_PORT}${NC}"
+echo -e "${BLUE}${BOLD}  Skip Upgrade:${NC} $([[ "$SKIP_UPGRADE" == "1" ]] && echo -e "${CYAN}Yes (no-update)${NC}" || echo 'No')"
+echo ""
+sleep 2
+
+# ── 1.6  Initialise log file ──────────────────────────────────────────────────
 touch "$LOG_FILE"
 chmod 640 "$LOG_FILE"
 echo "═══════════════════════════════════════════════════════════════" >> "$LOG_FILE"
 echo "  Arc Panel Install Log — $(date '+%Y-%m-%d %H:%M:%S')" >> "$LOG_FILE"
-echo "  Ubuntu $UBUNTU_VERSION | IP: $SERVER_IP" >> "$LOG_FILE"
+echo "  Ubuntu $UBUNTU_VERSION | IP: $SERVER_IP | Port: $PANEL_PORT" >> "$LOG_FILE"
 echo "═══════════════════════════════════════════════════════════════" >> "$LOG_FILE"
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -119,10 +205,14 @@ log_section "SECTION 2 — System Update & Core Dependencies"
 log_step "Updating package lists..."
 DEBIAN_FRONTEND=noninteractive apt-get update -y
 
-log_step "Upgrading installed packages (this may take a while)..."
-DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
-  -o Dpkg::Options::="--force-confdef" \
-  -o Dpkg::Options::="--force-confold"
+if [[ "$SKIP_UPGRADE" == "1" ]]; then
+  log_info "Skipping full system package upgrade (--no-update / SKIP_UPGRADE=1 active)."
+else
+  log_step "Upgrading installed packages (this may take a while)..."
+  DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
+    -o Dpkg::Options::="--force-confdef" \
+    -o Dpkg::Options::="--force-confold"
+fi
 
 log_step "Installing core system dependencies..."
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -167,7 +257,7 @@ log_step "Configuring firewall rules..."
 ufw allow 22/tcp comment "SSH"
 
 # Arc Panel — web UI
-ufw allow 8080/tcp comment "Arc Panel Frontend"
+ufw allow "${PANEL_PORT}/tcp" comment "Arc Panel Frontend"
 
 # Arc Panel — backend API
 ufw allow 3001/tcp comment "Arc Panel Backend API"
@@ -418,11 +508,13 @@ fi
 
 # Add arc-panel user to the docker group so the daemon can manage containers
 usermod -aG docker arc-panel
+chown -R arc-panel:arc-panel /opt/arc-panel /var/lib/arc-panel /var/log/arc-panel
+chmod 755 /var/log/arc-panel
 log_ok "User 'arc-panel' added to docker group."
 
 # ── 7.3  Clone GitHub Repository or Copy Project Files ────────────────────────
 INSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || pwd)"
-REPO_URL="${1:-${REPO_URL:-https://github.com/shauryapatel044-dotcom/arc-panel.git}}"
+REPO_URL="${REPO_URL:-https://github.com/shauryapatel044-dotcom/arc-panel.git}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
 
 mkdir -p /opt/arc-panel/eggs
@@ -570,8 +662,9 @@ DAEMON_TOKEN=${TOKEN}
 LOG_LEVEL=info
 LOG_FILE=/var/log/arc-panel/backend.log
 
-# CORS origins (comma-separated)
-CORS_ORIGINS=http://${SERVER_IP}:8080,http://localhost:8080
+# CORS origins & Panel URL
+PANEL_URL=http://${SERVER_IP}:${PANEL_PORT}
+CORS_ORIGINS=http://${SERVER_IP}:${PANEL_PORT},http://localhost:${PANEL_PORT}
 ENVEOF
 
 chmod 640 /opt/arc-panel/backend/.env
@@ -592,6 +685,9 @@ NEXT_PUBLIC_WS_URL=ws://${SERVER_IP}:3001
 # Daemon WebSocket URL (for real-time console/stats)
 NEXT_PUBLIC_DAEMON_URL=http://${SERVER_IP}:8085
 NEXT_PUBLIC_DAEMON_WS_URL=ws://${SERVER_IP}:8085
+
+# Panel Port
+NEXT_PUBLIC_PANEL_PORT=${PANEL_PORT}
 
 # Build info
 NEXT_PUBLIC_APP_VERSION=1.0.0
@@ -620,6 +716,8 @@ JWT_SECRET=${JWT_SECRET}
 JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
 
 SERVER_IP=${SERVER_IP}
+PANEL_PORT=${PANEL_PORT}
+PANEL_URL=http://${SERVER_IP}:${PANEL_PORT}
 CREDEOF
 
 chmod 600 /etc/arc-panel/credentials
@@ -761,6 +859,7 @@ if [[ -f /opt/arc-panel/panel/package.json ]]; then
   sudo -u arc-panel \
     NEXT_PUBLIC_API_URL="http://${SERVER_IP}:3001" \
     NEXT_PUBLIC_DAEMON_WS_URL="ws://${SERVER_IP}:8085" \
+    NEXT_PUBLIC_PANEL_PORT="${PANEL_PORT}" \
     npm run build
 
   log_ok "Next.js build complete."
@@ -776,8 +875,9 @@ else
   log_warn "panel/package.json not found — skipping frontend build."
 fi
 
-# Fix ownership after npm operations
+# Fix ownership and permissions after npm operations
 chown -R arc-panel:arc-panel /opt/arc-panel/panel
+chmod -R 755 /opt/arc-panel/panel
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECTION 11 — Daemon Build
@@ -928,10 +1028,13 @@ log_ok "arc-panel-daemon.service created."
 
 # ── 12.3  Frontend service ─────────────────────────────────────────────────────
 log_step "Creating systemd service: arc-panel-frontend..."
-cat > /etc/systemd/system/arc-panel-frontend.service <<'SVCEOF'
+NPM_BIN="$(command -v npm || echo /usr/bin/npm)"
+NODE_BIN="$(command -v node || echo /usr/bin/node)"
+
+cat > /etc/systemd/system/arc-panel-frontend.service <<SVCEOF
 [Unit]
 Description=Arc Panel — Frontend (Next.js)
-Documentation=https://github.com/arc-panel/arc-panel
+Documentation=https://github.com/shauryapatel044-dotcom/arc-panel
 After=network.target arc-panel-backend.service
 
 [Service]
@@ -940,20 +1043,20 @@ User=arc-panel
 Group=arc-panel
 WorkingDirectory=/opt/arc-panel/panel
 
-# Runtime environment for Next.js standalone server
+# Runtime environment for Next.js production server
 Environment=NODE_ENV=production
-Environment=PORT=8080
+Environment=PORT=${PANEL_PORT}
 Environment=HOSTNAME=0.0.0.0
 
 # Load public env vars
 EnvironmentFile=/opt/arc-panel/panel/.env.local
 
-# Start the Next.js production server on port 8080
-ExecStart=/usr/bin/npm run start -- -p 8080 -H 0.0.0.0
+# Start the Next.js production server on configured port
+ExecStart=${NPM_BIN} run start -- -p ${PANEL_PORT} -H 0.0.0.0
 
 # Restart policy
 Restart=always
-RestartSec=10
+RestartSec=5
 StartLimitIntervalSec=60
 StartLimitBurst=5
 
@@ -1002,19 +1105,19 @@ log_ok "Log rotation configured."
 
 # ── 12.6  Start services in correct order ────────────────────────────────────
 log_step "Starting Arc Panel Daemon (first — backend depends on it)..."
-systemctl start arc-panel-daemon || log_warn "Daemon start returned non-zero — check status."
+systemctl restart arc-panel-daemon || log_warn "Daemon restart returned non-zero — check status."
 
-log_info "Waiting 5 seconds for daemon to initialise..."
-sleep 5
+log_info "Waiting 4 seconds for daemon to initialise..."
+sleep 4
 
 log_step "Starting Arc Panel Backend..."
-systemctl start arc-panel-backend || log_warn "Backend start returned non-zero — check status."
+systemctl restart arc-panel-backend || log_warn "Backend restart returned non-zero — check status."
 
-log_info "Waiting 5 seconds for backend to initialise..."
-sleep 5
+log_info "Waiting 4 seconds for backend to initialise..."
+sleep 4
 
 log_step "Starting Arc Panel Frontend..."
-systemctl start arc-panel-frontend || log_warn "Frontend start returned non-zero — check status."
+systemctl restart arc-panel-frontend || log_warn "Frontend restart returned non-zero — check status."
 
 log_info "Waiting 5 seconds for frontend to initialise..."
 sleep 5
@@ -1072,7 +1175,7 @@ fi
 
 # Check frontend (returns HTML, just check HTTP status)
 FRONTEND_HEALTHY=false
-if health_check "Arc Panel Frontend" "http://127.0.0.1:8080"; then
+if health_check "Arc Panel Frontend" "http://127.0.0.1:${PANEL_PORT}"; then
   FRONTEND_HEALTHY=true
 fi
 
@@ -1108,7 +1211,7 @@ echo -e "${NC}"
 echo -e "${CYAN}${BOLD}  ┌─────────────────────────────────────────────────────────────────────┐${NC}"
 echo -e "${CYAN}${BOLD}  │  Access Information                                                 │${NC}"
 echo -e "${CYAN}${BOLD}  ├─────────────────────────────────────────────────────────────────────┤${NC}"
-echo -e "${CYAN}  │${NC}  Panel URL       : ${GREEN}${BOLD}http://${SERVER_IP}:8080${NC}"
+echo -e "${CYAN}  │${NC}  Panel URL       : ${GREEN}${BOLD}http://${SERVER_IP}:${PANEL_PORT}${NC}"
 echo -e "${CYAN}  │${NC}  Backend API     : ${BLUE}http://${SERVER_IP}:3001${NC}"
 echo -e "${CYAN}  │${NC}  Daemon API      : ${BLUE}http://${SERVER_IP}:8085${NC}"
 echo -e "${CYAN}${BOLD}  ├─────────────────────────────────────────────────────────────────────┤${NC}"

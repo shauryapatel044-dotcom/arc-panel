@@ -93,19 +93,29 @@ Arc Panel is an open-source alternative to Pterodactyl Panel, designed for simpl
 ## Quick Install
 
 > [!IMPORTANT]
-> Requires a **fresh Ubuntu 22.04 or 24.04 LTS** VPS with at least **2 CPU cores, 4GB RAM, 20GB disk**.
+> Requires **Ubuntu 22.04 or 24.04 LTS** with at least **2 CPU cores, 4GB RAM, 20GB disk**.
 > Run as **root**.
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/arc-panel/arc-panel.git
-cd arc-panel
+### One-Line Install Command (Recommended)
 
-# 2. Run the installer
-sudo bash install.sh
+```bash
+# Fast install (skips slow OS package upgrade, auto-detects free port if 8080 is taken):
+curl -sSL https://raw.githubusercontent.com/shauryapatel044-dotcom/arc-panel/main/install.sh | sudo bash -s -- --no-update
+
+# Or specify a custom port explicitly (e.g. 8090):
+curl -sSL https://raw.githubusercontent.com/shauryapatel044-dotcom/arc-panel/main/install.sh | sudo bash -s -- --no-update --port 8090
+```
+
+### Git Clone Install
+
+```bash
+git clone https://github.com/shauryapatel044-dotcom/arc-panel.git /tmp/arc-panel
+cd /tmp/arc-panel
+sudo bash install.sh --no-update --port 8090
 ```
 
 The installer will automatically:
+- Check for port conflicts (if port 8080 is busy, auto-selects 8090)
 - Install all system dependencies (MariaDB, Docker, Node.js 20)
 - Configure UFW firewall rules
 - Generate all cryptographic secrets
@@ -113,7 +123,12 @@ The installer will automatically:
 - Create systemd services for auto-start on boot
 - Run database migrations and seed initial data
 
-Installation takes approximately **10–20 minutes** on a standard VPS.
+### Complete Uninstaller
+
+If you ever need to completely remove Arc Panel and wipe its database:
+```bash
+curl -sSL https://raw.githubusercontent.com/shauryapatel044-dotcom/arc-panel/main/uninstall.sh | sudo bash
+```
 
 ### Post-install
 
