@@ -27,7 +27,7 @@ import GlassCard from '@/components/ui/GlassCard';
 import GlassButton from '@/components/ui/GlassButton';
 import GlassInput from '@/components/ui/GlassInput';
 import { databaseApi } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, copyToClipboard } from '@/lib/utils';
 import type { ServerDatabase } from '@/types';
 
 interface DatabaseManagerProps {
@@ -60,7 +60,7 @@ export default function DatabaseManager({ serverId }: DatabaseManagerProps) {
   }, [serverId]);
 
   const handleCopy = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
+    void copyToClipboard(text);
     setCopiedKey(key);
     toast.success('Copied to clipboard!');
     setTimeout(() => setCopiedKey(null), 2000);

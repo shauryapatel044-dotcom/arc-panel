@@ -38,7 +38,7 @@ import GlassCard from '@/components/ui/GlassCard';
 import GlassButton from '@/components/ui/GlassButton';
 import GlassInput from '@/components/ui/GlassInput';
 import { gitApi } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, copyToClipboard } from '@/lib/utils';
 import type { GitConfig, GitRepoTestInfo } from '@/types';
 
 interface GitManagerProps {
@@ -194,7 +194,7 @@ export default function GitManager({ serverId }: GitManagerProps) {
 
   const handleCopyWebhook = () => {
     if (!config?.webhookUrl) return;
-    navigator.clipboard.writeText(config.webhookUrl);
+    void copyToClipboard(config.webhookUrl);
     setCopiedWebhook(true);
     toast.success('Webhook URL copied to clipboard!');
     setTimeout(() => setCopiedWebhook(false), 2000);

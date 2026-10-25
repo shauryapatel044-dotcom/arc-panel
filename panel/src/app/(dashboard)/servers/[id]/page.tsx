@@ -59,7 +59,7 @@ import GitManager from '@/components/dashboard/GitManager';
 import { useAuth } from '@/hooks/useAuth';
 import { useServerStats } from '@/hooks/useServerStats';
 import { serverApi, backupApi } from '@/lib/api';
-import { formatBytes, cn } from '@/lib/utils';
+import { formatBytes, cn, copyToClipboard } from '@/lib/utils';
 import { EGG_CATALOG } from '@/lib/eggs';
 import type { Server, Backup, ServerStatus } from '@/types';
 
@@ -261,6 +261,17 @@ export default function ServerDetailPage() {
     void fetchServer();
     void fetchBackups();
   }, [fetchServer, fetchBackups]);
+
+  // If activeTab is 'plugins' on non-Minecraft server, reset to 'console'
+  useEffect(() => {
+    const isMc =
+      (server?.eggId ?? '').toLowerCase().includes('minecraft') ||
+      (server?.dockerImage ?? '').toLowerCase().includes('minecraft') ||
+      (server?.dockerImage ?? '').toLowerCase().includes('mc-proxy');
+    if (activeTab === 'plugins' && server && !isMc) {
+      setActiveTab('console');
+    }
+  }, [activeTab, server]);
 
   /* ── Power Action Handler ─────────────────────────────────────── */
   const handlePower = async (action: 'start' | 'stop' | 'restart' | 'kill') => {
@@ -576,13 +587,6 @@ export default function ServerDetailPage() {
     { key: 'settings', label: 'Settings', icon: Settings },
   ];
 
-  // If activeTab is 'plugins' on non-Minecraft server, reset to 'console'
-  useEffect(() => {
-    if (activeTab === 'plugins' && !isMinecraftServer) {
-      setActiveTab('console');
-    }
-  }, [activeTab, isMinecraftServer]);
-
   return (
     <div className="flex flex-col gap-5">
       {/* Top Server Header + Power Controls */}
@@ -608,7 +612,7 @@ export default function ServerDetailPage() {
                 type="button"
                 onClick={() => {
                   if (resolvedConnectionText && !resolvedConnectionText.startsWith('Awaiting')) {
-                    navigator.clipboard.writeText(resolvedConnectionText);
+                    void copyToClipboard(resolvedConnectionText);
                     toast.success(`Copied IP: ${resolvedConnectionText}`);
                   }
                 }}

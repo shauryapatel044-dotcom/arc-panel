@@ -29,6 +29,7 @@ import toast from 'react-hot-toast';
 import GlassCard from '@/components/ui/GlassCard';
 import GlassButton from '@/components/ui/GlassButton';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { copyToClipboard } from '@/lib/utils';
 import { serverApi } from '@/lib/api';
 import type { Server, ServerStatus } from '@/types';
 
@@ -315,7 +316,7 @@ export default function ClientDashboardPage() {
                   type="button"
                   onClick={() => {
                     const addr = resolveServerAddress(srv);
-                    navigator.clipboard.writeText(addr);
+                    void copyToClipboard(addr);
                     toast.success(`Copied IP: ${addr}`);
                   }}
                   title="Click to copy Server IP"

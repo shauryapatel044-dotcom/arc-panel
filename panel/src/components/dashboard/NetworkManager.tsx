@@ -24,7 +24,7 @@ import toast from 'react-hot-toast';
 import GlassCard from '@/components/ui/GlassCard';
 import GlassButton from '@/components/ui/GlassButton';
 import { networkApi } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, copyToClipboard } from '@/lib/utils';
 import type { Allocation } from '@/types';
 import DomainManager from './DomainManager';
 
@@ -73,7 +73,7 @@ export default function NetworkManager({ serverId }: NetworkManagerProps) {
   }, [serverId]);
 
   const handleCopy = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
+    void copyToClipboard(text);
     setCopiedKey(key);
     toast.success('Connection address copied!');
     setTimeout(() => setCopiedKey(null), 2000);

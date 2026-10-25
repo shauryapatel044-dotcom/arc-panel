@@ -35,7 +35,7 @@ import GlassCard from '@/components/ui/GlassCard';
 import GlassButton from '@/components/ui/GlassButton';
 import GlassInput from '@/components/ui/GlassInput';
 import { domainApi } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, copyToClipboard as safeCopyToClipboard } from '@/lib/utils';
 import type { ServerDomain, ServerConnectionInfo, DnsInstruction } from '@/types';
 
 interface DomainManagerProps {
@@ -80,7 +80,7 @@ export default function DomainManager({ serverId }: DomainManagerProps) {
   }, [loadData]);
 
   const copyToClipboard = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
+    void safeCopyToClipboard(text);
     setCopiedKey(key);
     toast.success('Copied to clipboard!');
     setTimeout(() => setCopiedKey(null), 2000);
