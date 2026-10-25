@@ -821,7 +821,7 @@ ON DUPLICATE KEY UPDATE
   suspended=0,
   updatedAt=NOW(3);
 
-INSERT INTO nodes (id, name, fqdn, port, daemonToken, isOnline, totalMemory, totalCpu, usedMemory, usedCpu, createdAt, updatedAt)
+INSERT INTO nodes (id, name, fqdn, port, daemonToken, isOnline, publicIp, totalMemory, totalCpu, usedMemory, usedCpu, createdAt, updatedAt)
 VALUES (
   'clx_node_local',
   'local',
@@ -829,6 +829,7 @@ VALUES (
   8085,
   '${TOKEN}',
   1,
+  '${SERVER_IP}',
   8192,
   4,
   0,
@@ -839,7 +840,10 @@ VALUES (
 ON DUPLICATE KEY UPDATE
   daemonToken='${TOKEN}',
   isOnline=1,
+  publicIp='${SERVER_IP}',
   updatedAt=NOW(3);
+
+UPDATE allocations SET ip='${SERVER_IP}' WHERE ip='127.0.0.1' OR ip='0.0.0.0';
 SQLEOF
 
 log_ok "Default admin ('admin' / 'admin@arc.local', password 'admin') and local node verified in DB."

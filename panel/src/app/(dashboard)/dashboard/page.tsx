@@ -23,6 +23,7 @@ import {
   Sparkles,
   PlusCircle,
   Shield,
+  Copy,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import GlassCard from '@/components/ui/GlassCard';
@@ -106,6 +107,28 @@ export default function ClientDashboardPage() {
   };
 
   const runningCount = servers.filter((s) => s.status === 'running').length;
+
+  const resolveServerAddress = (srv: Server): string => {
+    const primaryPort = srv.allocation?.port ?? 25500;
+    const browserHost =
+      typeof window !== 'undefined' &&
+      window.location.hostname &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1' &&
+      window.location.hostname !== '0.0.0.0'
+        ? window.location.hostname
+        : null;
+
+    if (srv.customDomain) return srv.customDomain;
+    if (srv.tunnelStatus === 'ACTIVE' && srv.tunnelAddress) return srv.tunnelAddress;
+    if (srv.node?.domain) return `${srv.node.domain}:${primaryPort}`;
+    if (srv.node?.publicIp && srv.node.publicIp !== '127.0.0.1') return `${srv.node.publicIp}:${primaryPort}`;
+    if (srv.allocation?.ip && srv.allocation.ip !== '127.0.0.1' && srv.allocation.ip !== '0.0.0.0') {
+      return `${srv.allocation.ip}:${primaryPort}`;
+    }
+    if (browserHost) return `${browserHost}:${primaryPort}`;
+    return `127.0.0.1:${primaryPort}`;
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -288,14 +311,20 @@ export default function ClientDashboardPage() {
 
               {/* Network & Actions Footer */}
               <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
-                <div className="flex items-center gap-1.5 font-mono text-xs text-white/55">
-                  <Network className="h-3.5 w-3.5 text-arc-cyan-400" />
-                  <span>
-                    {srv.allocation
-                      ? `${srv.allocation.ip}:${srv.allocation.port}`
-                      : '127.0.0.1:25500'}
-                  </span>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const addr = resolveServerAddress(srv);
+                    navigator.clipboard.writeText(addr);
+                    toast.success(`Copied IP: ${addr}`);
+                  }}
+                  title="Click to copy Server IP"
+                  className="flex items-center gap-1.5 font-mono text-xs text-white/60 transition hover:text-arc-cyan-300"
+                >
+                  <Network className="h-3.5 w-3.5 text-arc-cyan-400 shrink-0" />
+                  <span className="select-all">{resolveServerAddress(srv)}</span>
+                  <Copy className="h-3 w-3 opacity-50 hover:opacity-100 shrink-0" />
+                </button>
 
                 <div className="flex items-center gap-1.5">
                   <GlassButton

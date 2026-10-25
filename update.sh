@@ -284,6 +284,15 @@ if [[ -f node_modules/.bin/prisma ]]; then
   log_step "Running Prisma generate & schema sync..."
   sudo -u arc-panel DATABASE_URL="${DATABASE_URL}" npx prisma generate
   sudo -u arc-panel DATABASE_URL="${DATABASE_URL}" npx prisma db push --skip-generate 2>/dev/null || true
+
+  # Ensure local node publicIp and allocations are updated to VPS IP
+  if [[ -n "$SERVER_IP" ]] && [[ "$SERVER_IP" != "127.0.0.1" ]]; then
+    log_step "Updating database with detected VPS IP (${SERVER_IP})..."
+    mysql -u "${DB_USER:-arcpanel}" -p"${DB_PASSWORD:-}" "${DB_NAME:-arcpanel}" <<SQLEOF 2>/dev/null || true
+UPDATE nodes SET publicIp='${SERVER_IP}' WHERE publicIp IS NULL OR publicIp='127.0.0.1' OR publicIp='';
+UPDATE allocations SET ip='${SERVER_IP}' WHERE ip='127.0.0.1' OR ip='0.0.0.0' OR ip='';
+SQLEOF
+  fi
 fi
 sudo -u arc-panel npm run build
 log_ok "Backend rebuilt successfully."

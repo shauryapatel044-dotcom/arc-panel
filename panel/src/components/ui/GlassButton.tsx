@@ -57,10 +57,10 @@ const variantStyles: Record<ButtonVariant, string> = {
 
 /* ── Size styles ─────────────────────────────────────────────────── */
 const sizeStyles: Record<ButtonSize, string> = {
-  xs: 'h-7 px-2.5 text-xs gap-1   rounded-lg',
-  sm: 'h-8 px-3   text-sm gap-1.5 rounded-xl',
-  md: 'h-10 px-4  text-sm gap-2   rounded-xl',
-  lg: 'h-12 px-6  text-base gap-2 rounded-2xl',
+  xs: 'h-7 px-2.5 text-xs gap-1.5 rounded-lg whitespace-nowrap shrink-0',
+  sm: 'h-8 px-3   text-sm gap-1.5 rounded-xl whitespace-nowrap shrink-0',
+  md: 'h-10 px-4  text-sm gap-2   rounded-xl whitespace-nowrap shrink-0',
+  lg: 'h-12 px-6  text-base gap-2 rounded-2xl whitespace-nowrap shrink-0',
 };
 
 /* ── Spinner ─────────────────────────────────────────────────────── */
@@ -111,7 +111,7 @@ const GlassButton = forwardRef<HTMLButtonElement, GlassButtonProps>(
         ref={ref}
         className={cn(
           /* Base */
-          'inline-flex items-center justify-center font-semibold',
+          'inline-flex items-center justify-center font-semibold whitespace-nowrap shrink-0',
           'backdrop-blur-md select-none outline-none',
           'transition-colors duration-200',
           'focus-visible:ring-2 focus-visible:ring-arc-cyan-400/60 focus-visible:ring-offset-1',
@@ -137,7 +137,7 @@ const GlassButton = forwardRef<HTMLButtonElement, GlassButtonProps>(
         ) : (
           leftIcon && <span className="shrink-0">{leftIcon}</span>
         )}
-        {children && <span>{children}</span>}
+        {children && <span className="shrink-0 whitespace-nowrap">{children}</span>}
         {!isLoading && rightIcon && (
           <span className="shrink-0">{rightIcon}</span>
         )}

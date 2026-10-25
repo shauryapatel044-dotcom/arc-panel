@@ -152,16 +152,20 @@ async function main(): Promise<void> {
 
   // ── 2. Local Node ────────────────────────────────────────────────────────────
   const daemonToken = process.env.DAEMON_TOKEN || 'changeme';
+  const serverIp = process.env.SERVER_IP || '127.0.0.1';
+  const allocIp = serverIp !== '127.0.0.1' ? serverIp : '127.0.0.1';
 
   const localNode = await prisma.node.upsert({
     where: { name: 'local' },
     update: {
       daemonToken,
       isOnline: true,
+      publicIp: serverIp !== '127.0.0.1' ? serverIp : undefined,
     },
     create: {
       name: 'local',
       fqdn: '127.0.0.1',
+      publicIp: serverIp !== '127.0.0.1' ? serverIp : undefined,
       port: 8085,
       daemonToken,
       isOnline: true,
@@ -172,7 +176,7 @@ async function main(): Promise<void> {
     },
   });
 
-  console.log(`✅ Local node: ${localNode.name} (id: ${localNode.id})`);
+  console.log(`✅ Local node: ${localNode.name} (id: ${localNode.id}, publicIp: ${serverIp})`);
 
   // ── 3. Port Allocations 25500–25509 ─────────────────────────────────────────
   const allocationPorts = Array.from({ length: 10 }, (_, i) => 25500 + i);
@@ -183,7 +187,7 @@ async function main(): Promise<void> {
       where: {
         nodeId_ip_port: {
           nodeId: localNode.id,
-          ip: '127.0.0.1',
+          ip: allocIp,
           port,
         },
       },
@@ -193,7 +197,7 @@ async function main(): Promise<void> {
       await prisma.allocation.create({
         data: {
           nodeId: localNode.id,
-          ip: '127.0.0.1',
+          ip: allocIp,
           port,
           isAssigned: false,
         },
@@ -202,7 +206,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(`✅ Allocations: ${allocCreated} created (ports 25500–25509 on 127.0.0.1)`);
+  console.log(`✅ Allocations: ${allocCreated} created (ports 25500–25509 on ${allocIp})`);
 
   // ── 4. Egg Templates ─────────────────────────────────────────────────────────
   let eggsCreated = 0;

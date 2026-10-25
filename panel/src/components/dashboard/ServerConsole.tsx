@@ -26,10 +26,8 @@ function getSocketBaseUrl(): string {
     const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
     return `${protocol}//${window.location.hostname}:3001`;
   }
-  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+  return process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001';
 }
-
-const API_BASE_URL = getSocketBaseUrl();
 
 interface ServerConsoleProps {
   serverId: string;
@@ -120,7 +118,15 @@ export default function ServerConsole({
       const fitAddon = new FitAddon();
       term.loadAddon(fitAddon);
       term.open(terminalContainerRef.current);
-      fitAddon.fit();
+      requestAnimationFrame(() => {
+        try {
+          if (terminalContainerRef.current && terminalContainerRef.current.clientWidth > 0) {
+            fitAddon.fit();
+          }
+        } catch {
+          // ignore
+        }
+      });
 
       xtermRef.current = term;
       fitAddonRef.current = fitAddon;
@@ -147,7 +153,7 @@ export default function ServerConsole({
               term.clear();
               return;
             }
-            socketRef.current?.emit('console:input', { command: cmdToSend });
+            socketRef.current?.emit('console:input', { command: cmdToSend, data: `${cmdToSend}\n` });
           }
         } else if (data === '\x7f' || data === '\b') {
           // Backspace
@@ -200,7 +206,7 @@ export default function ServerConsole({
         }
       }
 
-      const socket = io(API_BASE_URL, {
+      const socket = io(getSocketBaseUrl(), {
         transports: ['websocket', 'polling'],
         auth: { token: resolvedToken || 'local-session', serverId },
         reconnection: true,
@@ -272,7 +278,7 @@ export default function ServerConsole({
     if (!trimmed) return;
 
     if (socketRef.current?.connected) {
-      socketRef.current.emit('console:input', { data: `${trimmed}\n` });
+      socketRef.current.emit('console:input', { command: trimmed, data: `${trimmed}\n` });
     }
     writeToTerminal(`\x1b[38;2;0;204;255m❯\x1b[0m ${trimmed}\r\n`);
 

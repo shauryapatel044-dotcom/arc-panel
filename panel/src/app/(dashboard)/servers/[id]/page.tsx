@@ -39,6 +39,7 @@ import {
   Bell,
   FolderGit2,
   Lock,
+  Copy,
 } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -525,7 +526,22 @@ export default function ServerDetailPage() {
     server.tunnelAddress || server.node?.tunnelAddress;
   const primaryPort = server.allocation?.port ?? 25500;
 
-  let resolvedConnectionText = `${server.allocation?.ip ?? '127.0.0.1'}:${primaryPort}`;
+  // Smart IP resolution: If allocation IP is local, resolve to VPS public IP or browser host!
+  const browserHost =
+    typeof window !== 'undefined' &&
+    window.location.hostname &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1' &&
+    window.location.hostname !== '0.0.0.0'
+      ? window.location.hostname
+      : null;
+
+  let displayIp = server.allocation?.ip;
+  if (!displayIp || displayIp === '127.0.0.1' || displayIp === '0.0.0.0') {
+    displayIp = server.node?.publicIp || browserHost || '127.0.0.1';
+  }
+
+  let resolvedConnectionText = `${displayIp}:${primaryPort}`;
   if (isNonIpv4 && !isTunnelActive) {
     resolvedConnectionText = 'Awaiting Admin Tunnel (Playit / Cloudflare)';
   } else if (server.customDomain) {
@@ -534,8 +550,10 @@ export default function ServerDetailPage() {
     resolvedConnectionText = effectiveTunnelAddress;
   } else if (server.node?.domain) {
     resolvedConnectionText = `${server.node.domain}:${primaryPort}`;
-  } else if (server.node?.publicIp) {
+  } else if (server.node?.publicIp && server.node.publicIp !== '127.0.0.1') {
     resolvedConnectionText = `${server.node.publicIp}:${primaryPort}`;
+  } else if (browserHost) {
+    resolvedConnectionText = `${browserHost}:${primaryPort}`;
   }
 
   const TABS: Array<{
@@ -546,7 +564,9 @@ export default function ServerDetailPage() {
     { key: 'console', label: 'Live Console', icon: Terminal },
     { key: 'resources', label: 'Resources', icon: Activity },
     { key: 'files', label: 'File Manager', icon: FolderOpen },
-    { key: 'plugins', label: 'Plugins & Mods', icon: Puzzle },
+    ...(isMinecraftServer
+      ? [{ key: 'plugins' as TabKey, label: 'Plugins & Mods', icon: Puzzle }]
+      : []),
     { key: 'databases', label: 'Databases', icon: Database },
     { key: 'network', label: 'Network & Domains', icon: Network },
     { key: 'git', label: 'GitHub Sync', icon: FolderGit2 },
@@ -555,6 +575,13 @@ export default function ServerDetailPage() {
     { key: 'webhooks', label: 'Alerts & Logs', icon: Bell },
     { key: 'settings', label: 'Settings', icon: Settings },
   ];
+
+  // If activeTab is 'plugins' on non-Minecraft server, reset to 'console'
+  useEffect(() => {
+    if (activeTab === 'plugins' && !isMinecraftServer) {
+      setActiveTab('console');
+    }
+  }, [activeTab, isMinecraftServer]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -575,6 +602,28 @@ export default function ServerDetailPage() {
             <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="text-xl font-bold text-white">{server.name}</h1>
               <StatusBadge status={effectiveStatus} />
+
+              {/* One-Click Copy Server Connection IP */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (resolvedConnectionText && !resolvedConnectionText.startsWith('Awaiting')) {
+                    navigator.clipboard.writeText(resolvedConnectionText);
+                    toast.success(`Copied IP: ${resolvedConnectionText}`);
+                  }
+                }}
+                title="Click to copy Server Connection IP"
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold transition active:scale-95 shrink-0 select-all',
+                  isNonIpv4 && !isTunnelActive
+                    ? 'border-amber-500/40 bg-amber-500/15 text-amber-300'
+                    : 'border-arc-cyan-400/40 bg-arc-cyan-400/15 text-arc-cyan-300 shadow-[0_0_12px_rgba(0,204,255,0.2)] hover:bg-arc-cyan-400/25 cursor-pointer',
+                )}
+              >
+                <Network className="h-3.5 w-3.5 text-arc-cyan-400 shrink-0" />
+                <span>{resolvedConnectionText}</span>
+                <Copy className="h-3 w-3 opacity-60 hover:opacity-100 shrink-0" />
+              </button>
 
               {/* Auto-Start Watchdog Pill (All Servers) */}
               <button
@@ -628,17 +677,14 @@ export default function ServerDetailPage() {
             </div>
             <p className="mt-0.5 font-mono text-xs text-white/45">
               ID: {server.id.slice(0, 12)} • Egg: {server.eggId} (
-              {server.environment?.VERSION || 'latest'}) •{' '}
-              <strong className={cn('font-semibold', isNonIpv4 && !isTunnelActive ? 'text-amber-400' : 'text-arc-cyan-400')}>
-                {resolvedConnectionText}
-              </strong>
+              {server.environment?.VERSION || 'latest'})
               {isPythonServer && ` • Entrypoint: python ${pythonFile} (Auto-Stops on Done)`}
             </p>
           </div>
         </div>
 
         {/* Power Control Bar */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0">
           <GlassButton
             variant="primary"
             size="sm"
@@ -831,8 +877,8 @@ export default function ServerDetailPage() {
       {/* ── TAB 3: FILE MANAGER ──────────────────────────────────── */}
       {activeTab === 'files' && <FileManager serverId={server.id} />}
 
-      {/* ── TAB 4: PLUGINS & MODS ─────────────────────────────────── */}
-      {activeTab === 'plugins' && (
+      {/* ── TAB 4: PLUGINS & MODS (Minecraft Servers Only) ──────────────── */}
+      {activeTab === 'plugins' && isMinecraftServer && (
         <PluginManager serverId={server.id} serverEgg={server.eggId} />
       )}
 

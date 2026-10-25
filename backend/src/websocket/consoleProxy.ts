@@ -931,9 +931,26 @@ export function registerConsoleProxy(io: SocketIOServer): void {
             };
 
             if (parsed.type === 'stdout' || parsed.type === 'stderr') {
-              const decodedText = parsed.data
-                ? Buffer.from(parsed.data, 'base64').toString('utf-8')
-                : '';
+              const rawData = parsed.data ?? '';
+              let decodedText = rawData;
+              // Safely handle both plain UTF-8 string (sent by Daemon) and legacy base64
+              if (
+                rawData &&
+                !rawData.includes(' ') &&
+                !rawData.includes('\n') &&
+                !rawData.includes('\x1b') &&
+                rawData.length % 4 === 0 &&
+                /^[A-Za-z0-9+/=]+$/.test(rawData)
+              ) {
+                try {
+                  const b = Buffer.from(rawData, 'base64').toString('utf-8');
+                  if (b && /^[\x20-\x7E\r\n\t]+$/.test(b)) {
+                    decodedText = b;
+                  }
+                } catch {
+                  decodedText = rawData;
+                }
+              }
               appendServerLog(serverId, decodedText);
               socket.emit('console:output', {
                 type: parsed.type,
