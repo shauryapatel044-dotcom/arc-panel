@@ -13,7 +13,7 @@ import { useForm }             from 'react-hook-form';
 import { zodResolver }         from '@hookform/resolvers/zod';
 import { z }                   from 'zod';
 import toast                   from 'react-hot-toast';
-import { Mail, Lock, Shield, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { Mail, Lock, Shield, Eye, EyeOff, KeyRound, Sparkles } from 'lucide-react';
 
 import { useAuth }    from '@/hooks/useAuth';
 import GlassInput     from '@/components/ui/GlassInput';
@@ -71,12 +71,16 @@ export default function LoginPage() {
         setNeeds2FA(true);
         return;
       }
+
       if (response.firstLogin) {
-        setNeedsPassReset(true);
-        return;
+        toast('Welcome! Remember to change default password in Profile.', {
+          icon: '🔐',
+          duration: 5000,
+        });
+      } else {
+        toast.success('Welcome back!');
       }
 
-      toast.success('Welcome back!');
       router.push('/dashboard');
     } catch (err: unknown) {
       const msg =
@@ -132,6 +136,10 @@ export default function LoginPage() {
           </div>
           <h1 className="text-3xl font-bold text-shimmer">Arc Panel</h1>
           <p className="mt-1 text-sm text-white/50">Enterprise Game Server Management</p>
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-arc-cyan-400/40 bg-arc-cyan-400/15 px-3 py-1 text-xs font-semibold text-arc-cyan-300 shadow-[0_0_18px_rgba(0,204,255,0.25)]">
+            <Sparkles className="h-3.5 w-3.5 text-arc-cyan-400 animate-pulse" />
+            <span>Owned By Eclipse Market(Demo Panel)</span>
+          </div>
         </motion.div>
 
         <GlassCard className="p-8" hoverable={false}>

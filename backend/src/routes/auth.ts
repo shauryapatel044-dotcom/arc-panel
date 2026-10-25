@@ -138,7 +138,7 @@ router.post('/login', validate(LoginSchema), async (req: Request, res: Response)
           email: 'admin@arc.local',
           passwordHash: defaultHash,
           role: Role.ADMIN,
-          forcePasswordChange: true,
+          forcePasswordChange: false,
         },
       });
       logger.info('Auto-bootstrapped default admin user (admin@arc.local)');
@@ -156,18 +156,16 @@ router.post('/login', validate(LoginSchema), async (req: Request, res: Response)
 
     let passwordValid = await bcrypt.compare(password, user.passwordHash);
 
-    // If logging in as initial admin with password 'admin' while forcePasswordChange is still true,
-    // repair any invalid/placeholder hash from fallback SQL seed
+    // If logging in as initial admin with password 'admin', repair any invalid/placeholder hash from fallback SQL seed
     if (
       !passwordValid &&
       isDefaultAdminInput &&
-      password === 'admin' &&
-      user.forcePasswordChange
+      password === 'admin'
     ) {
       const repairedHash = await bcrypt.hash('admin', BCRYPT_ROUNDS);
       user = await prisma.user.update({
         where: { id: user.id },
-        data: { passwordHash: repairedHash, role: Role.ADMIN },
+        data: { passwordHash: repairedHash, role: Role.ADMIN, forcePasswordChange: false },
       });
       passwordValid = true;
     }

@@ -59,12 +59,22 @@ export default function DashboardLayout({
   const logout = useAuth((s) => s.logout);
 
   useEffect(() => {
+    // Failsafe: guarantee hydration state is marked after mount
+    const timer = setTimeout(() => {
+      if (!isHydrated) {
+        useAuth.getState().setHydrated();
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [isHydrated]);
+
+  useEffect(() => {
     if (isHydrated && !isAuthed) {
       router.replace('/login');
     }
   }, [isHydrated, isAuthed, router]);
 
-  if (!isHydrated || !isAuthed) {
+  if (!isHydrated && !isAuthed) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 backdrop-blur-xl">
@@ -94,22 +104,33 @@ export default function DashboardLayout({
         {/* Top Brand + Nav Links */}
         <div className="flex flex-col gap-6">
           {/* Brand Header */}
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 px-2 py-1.5"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-arc-cyan-400/40 bg-arc-cyan-400/15 shadow-[0_0_20px_rgba(0,204,255,0.3)]">
-              <Server className="h-5 w-5 text-arc-cyan-400" />
-            </div>
-            <div>
-              <span className="bg-gradient-to-r from-white via-arc-cyan-300 to-arc-blue-400 bg-clip-text text-lg font-bold tracking-tight text-transparent">
-                ARC PANEL
+          <div className="flex flex-col gap-2.5">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-3 px-2 py-1.5"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-arc-cyan-400/40 bg-arc-cyan-400/15 shadow-[0_0_20px_rgba(0,204,255,0.3)]">
+                <Server className="h-5 w-5 text-arc-cyan-400" />
+              </div>
+              <div>
+                <span className="bg-gradient-to-r from-white via-arc-cyan-300 to-arc-blue-400 bg-clip-text text-lg font-bold tracking-tight text-transparent">
+                  ARC PANEL
+                </span>
+                <p className="text-[11px] font-medium uppercase tracking-widest text-white/40">
+                  Enterprise Cloud
+                </p>
+              </div>
+            </Link>
+
+            {/* Owned By Tag */}
+            <div className="flex items-center gap-2 rounded-xl border border-arc-cyan-400/35 bg-arc-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-arc-cyan-300 shadow-[0_0_15px_rgba(0,204,255,0.2)]">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-arc-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-arc-cyan-400"></span>
               </span>
-              <p className="text-[11px] font-medium uppercase tracking-widest text-white/40">
-                Enterprise Cloud
-              </p>
+              <span className="truncate">Owned By Eclipse Market(Demo Panel)</span>
             </div>
-          </Link>
+          </div>
 
           {/* Client Area Navigation */}
           <div className="flex flex-col gap-1">
@@ -211,16 +232,24 @@ export default function DashboardLayout({
         {/* Top Floating Glass Bar */}
         <header
           className={cn(
-            'flex items-center justify-between gap-4 rounded-2xl',
+            'flex flex-wrap items-center justify-between gap-4 rounded-2xl',
             'border border-white/[0.08] bg-white/[0.04] px-5 py-3.5 backdrop-blur-xl',
             'shadow-[0_4px_24px_rgba(0,0,0,0.3)]',
           )}
         >
-          <div className="flex items-center gap-3">
-            <Activity className="h-4 w-4 text-arc-cyan-400" />
-            <span className="text-xs font-medium uppercase tracking-wider text-white/60">
-              Daemon Telemetry Connected • Port 8085
-            </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-arc-cyan-400" />
+              <span className="hidden sm:inline text-xs font-medium uppercase tracking-wider text-white/60">
+                Daemon Telemetry
+              </span>
+            </div>
+
+            {/* Owned By Eclipse Market Tag */}
+            <div className="flex items-center gap-1.5 rounded-full border border-arc-cyan-400/40 bg-arc-cyan-400/12 px-3 py-1 text-xs font-semibold text-arc-cyan-300 shadow-[0_0_18px_rgba(0,204,255,0.25)]">
+              <Sparkles className="h-3.5 w-3.5 text-arc-cyan-400 animate-pulse" />
+              <span>Owned By Eclipse Market(Demo Panel)</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2.5">
@@ -248,6 +277,62 @@ export default function DashboardLayout({
             </GlassButton>
           </div>
         </header>
+
+        {/* Mobile Navigation Strip (visible on < lg screens) */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:hidden">
+          <Link
+            href="/dashboard"
+            className={cn(
+              'flex shrink-0 items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-medium transition',
+              pathname === '/dashboard'
+                ? 'border-arc-cyan-400/40 bg-arc-cyan-400/15 text-arc-cyan-400'
+                : 'border-white/10 bg-white/[0.03] text-white/70 hover:text-white',
+            )}
+          >
+            <LayoutDashboard className="h-3.5 w-3.5" />
+            <span>Dashboard</span>
+          </Link>
+          {(isAdmin || user?.role?.toUpperCase() === 'ADMIN') && (
+            <>
+              <Link
+                href="/admin"
+                className={cn(
+                  'flex shrink-0 items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-medium transition',
+                  pathname === '/admin'
+                    ? 'border-arc-violet-400/40 bg-arc-violet-400/15 text-arc-violet-300'
+                    : 'border-white/10 bg-white/[0.03] text-white/70 hover:text-white',
+                )}
+              >
+                <Shield className="h-3.5 w-3.5" />
+                <span>Admin Overview</span>
+              </Link>
+              <Link
+                href="/servers/create"
+                className={cn(
+                  'flex shrink-0 items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-medium transition',
+                  pathname === '/servers/create'
+                    ? 'border-arc-cyan-400/40 bg-arc-cyan-400/15 text-arc-cyan-400'
+                    : 'border-white/10 bg-white/[0.03] text-white/70 hover:text-white',
+                )}
+              >
+                <PlusCircle className="h-3.5 w-3.5" />
+                <span>Create Server</span>
+              </Link>
+            </>
+          )}
+          <Link
+            href="/profile"
+            className={cn(
+              'flex shrink-0 items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-medium transition',
+              pathname === '/profile'
+                ? 'border-arc-cyan-400/40 bg-arc-cyan-400/15 text-arc-cyan-400'
+                : 'border-white/10 bg-white/[0.03] text-white/70 hover:text-white',
+            )}
+          >
+            <UserCircle className="h-3.5 w-3.5" />
+            <span>Profile</span>
+          </Link>
+        </div>
 
         {/* Page Content */}
         <main className="flex-1 pb-10">{children}</main>

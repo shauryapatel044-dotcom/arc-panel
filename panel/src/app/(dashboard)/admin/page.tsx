@@ -27,6 +27,7 @@ import {
   ShieldAlert,
   Radio,
   CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import GlassCard from '@/components/ui/GlassCard';
@@ -253,13 +254,17 @@ export default function AdminOverviewPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl font-bold text-white">
               Global Administration Overview
             </h1>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-arc-cyan-400/35 bg-arc-cyan-400/12 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-arc-cyan-400">
               <span className="h-2 w-2 animate-pulse rounded-full bg-arc-cyan-400" />
               Live Telemetry (2s)
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-arc-cyan-400/40 bg-arc-cyan-400/15 px-3 py-0.5 text-xs font-semibold text-arc-cyan-300 shadow-[0_0_15px_rgba(0,204,255,0.25)]">
+              <Sparkles className="h-3 w-3 text-arc-cyan-400 animate-pulse" />
+              Owned By Eclipse Market(Demo Panel)
             </span>
           </div>
           <p className="mt-1 text-sm text-white/50">

@@ -149,11 +149,16 @@ export const useAuth = create<AuthState>()(
 
 /* ── Helper functions ─────────────────────────────────────────────── */
 
-/** Persist tokens to raw localStorage keys (read by Axios interceptor) */
+/** Persist tokens to raw localStorage keys (read by Axios interceptor) and cookies */
 function persistTokensToStorage(tokens: AuthTokens) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem('arc_access_token',  tokens.accessToken);
   window.localStorage.setItem('arc_refresh_token', tokens.refreshToken);
+  try {
+    document.cookie = `arc_access_token=${tokens.accessToken}; path=/; max-age=604800; SameSite=Lax`;
+  } catch {
+    // Ignore cookie errors
+  }
 }
 
 /** Remove all token keys */
@@ -163,6 +168,11 @@ function clearStoredTokens() {
   window.localStorage.removeItem('arc_refresh_token');
   window.localStorage.removeItem('arc_user');
   window.localStorage.removeItem('arc-auth');
+  try {
+    document.cookie = 'arc_access_token=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  } catch {
+    // Ignore cookie errors
+  }
 }
 
 /** Server-safe noop storage */

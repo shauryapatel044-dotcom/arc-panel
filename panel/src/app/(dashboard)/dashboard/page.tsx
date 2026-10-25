@@ -20,6 +20,9 @@ import {
   Terminal,
   RefreshCw,
   Network,
+  Sparkles,
+  PlusCircle,
+  Shield,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import GlassCard from '@/components/ui/GlassCard';
@@ -109,10 +112,16 @@ export default function ClientDashboardPage() {
       {/* Page Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            Your Instances
-          </h1>
-          <p className="text-sm text-white/50">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              Your Instances
+            </h1>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-arc-cyan-400/40 bg-arc-cyan-400/15 px-3 py-1 text-xs font-semibold text-arc-cyan-300 shadow-[0_0_16px_rgba(0,204,255,0.25)]">
+              <Sparkles className="h-3.5 w-3.5 text-arc-cyan-400 animate-pulse" />
+              Owned By Eclipse Market(Demo Panel)
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-white/50">
             Manage, monitor, and orchestrate your assigned game & application
             containers.
           </p>
@@ -175,7 +184,7 @@ export default function ClientDashboardPage() {
           accentColor="cyan"
           className="flex flex-col items-center justify-center gap-4 py-16 text-center"
         >
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-arc-cyan-400/30 bg-arc-cyan-400/10 text-arc-cyan-400">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-arc-cyan-400/30 bg-arc-cyan-400/10 text-arc-cyan-400 shadow-[0_0_20px_rgba(0,204,255,0.2)]">
             <ServerIcon className="h-7 w-7" />
           </div>
           <div>
@@ -187,6 +196,26 @@ export default function ClientDashboardPage() {
               Administrators can provision and assign containers from the
               Administration panel.
             </p>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
+            <Link href="/servers/create">
+              <GlassButton
+                variant="primary"
+                size="sm"
+                leftIcon={<PlusCircle className="h-4 w-4" />}
+              >
+                Create Server
+              </GlassButton>
+            </Link>
+            <Link href="/admin">
+              <GlassButton
+                variant="secondary"
+                size="sm"
+                leftIcon={<Shield className="h-4 w-4" />}
+              >
+                Admin Overview
+              </GlassButton>
+            </Link>
           </div>
         </GlassCard>
       ) : (

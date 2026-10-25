@@ -3,22 +3,33 @@
    Redirects authenticated users to /dashboard, others to /login
 ════════════════════════════════════════════════════════════════ */
 
-import { redirect } from 'next/navigation';
-import { cookies }  from 'next/headers';
+'use client';
 
-/**
- * Server component — reads the arc_access_token cookie to decide
- * where to send the user.  The actual auth validation happens in
- * the dashboard layout's client-side auth guard.
- */
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth, selectIsAuthed } from '@/hooks/useAuth';
+
 export default function RootPage() {
-  const cookieStore = cookies();
-  const token       = cookieStore.get('arc_access_token')?.value;
+  const router = useRouter();
+  const isHydrated = useAuth((s) => s.isHydrated);
+  const isAuthed = useAuth(selectIsAuthed);
 
-  /* Redirect server-side to avoid flash of content */
-  if (token) {
-    redirect('/dashboard');
-  } else {
-    redirect('/login');
-  }
+  useEffect(() => {
+    const localToken =
+      typeof window !== 'undefined'
+        ? window.localStorage.getItem('arc_access_token')
+        : null;
+
+    if (localToken || isAuthed) {
+      router.replace('/dashboard');
+    } else {
+      router.replace('/login');
+    }
+  }, [isHydrated, isAuthed, router]);
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#070b14]">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-arc-cyan-400 border-t-transparent" />
+    </div>
+  );
 }

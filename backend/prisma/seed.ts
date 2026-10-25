@@ -137,13 +137,14 @@ async function main(): Promise<void> {
       username: 'admin',
       passwordHash: adminPassword,
       role: Role.ADMIN,
+      forcePasswordChange: false,
     },
     create: {
       username: 'admin',
       email: 'admin@arc.local',
       passwordHash: adminPassword,
       role: Role.ADMIN,
-      forcePasswordChange: true,
+      forcePasswordChange: false,
     },
   });
 

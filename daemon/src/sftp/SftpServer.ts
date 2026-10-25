@@ -29,6 +29,20 @@ import forge from 'node-forge';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 
+// ─── SFTP Status Codes ────────────────────────────────────────────────────────
+
+const STATUS_CODE = {
+  OK: 0,
+  EOF: 1,
+  NO_SUCH_FILE: 2,
+  PERMISSION_DENIED: 3,
+  FAILURE: 4,
+  BAD_MESSAGE: 5,
+  NO_CONNECTION: 6,
+  CONNECTION_LOST: 7,
+  OP_UNSUPPORTED: 8,
+};
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface OpenFileHandle {
@@ -101,7 +115,7 @@ function realPath(serverId: string, sftpPath: string): string {
 
 // ─── stat → SFTP attrs conversion ────────────────────────────────────────────
 
-function statToAttrs(stat: fs.Stats): Record<string, unknown> {
+function statToAttrs(stat: fs.Stats): any {
   return {
     mode: stat.mode,
     uid: stat.uid,
@@ -135,7 +149,7 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
     try {
       osPath = realPath(serverId, filename);
     } catch {
-      return sftp.status(reqid, SFTPWrapper.STATUS_CODE.PERMISSION_DENIED);
+      return sftp.status(reqid, STATUS_CODE.PERMISSION_DENIED);
     }
 
     // Convert SFTP flags to Node fs flags
@@ -176,9 +190,9 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
       sftp.handle(reqid, handle);
     } catch (err) {
       const code = (err as NodeJS.ErrnoException).code;
-      if (code === 'ENOENT') return sftp.status(reqid, SFTPWrapper.STATUS_CODE.NO_SUCH_FILE);
-      if (code === 'EACCES') return sftp.status(reqid, SFTPWrapper.STATUS_CODE.PERMISSION_DENIED);
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+      if (code === 'ENOENT') return sftp.status(reqid, STATUS_CODE.NO_SUCH_FILE);
+      if (code === 'EACCES') return sftp.status(reqid, STATUS_CODE.PERMISSION_DENIED);
+      sftp.status(reqid, STATUS_CODE.FAILURE);
     }
   });
 
@@ -186,16 +200,16 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
   sftp.on('READ', (reqid, handle, offset, length) => {
     const entry = handles.get(hKey(handle));
     if (!entry || entry.kind !== 'file') {
-      return sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+      return sftp.status(reqid, STATUS_CODE.FAILURE);
     }
 
     const buf = Buffer.alloc(length);
     try {
       const bytesRead = fs.readSync(entry.handle.fd, buf, 0, length, offset);
-      if (bytesRead === 0) return sftp.status(reqid, SFTPWrapper.STATUS_CODE.EOF);
+      if (bytesRead === 0) return sftp.status(reqid, STATUS_CODE.EOF);
       sftp.data(reqid, buf.slice(0, bytesRead));
     } catch {
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+      sftp.status(reqid, STATUS_CODE.FAILURE);
     }
   });
 
@@ -203,14 +217,14 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
   sftp.on('WRITE', (reqid, handle, offset, data) => {
     const entry = handles.get(hKey(handle));
     if (!entry || entry.kind !== 'file') {
-      return sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+      return sftp.status(reqid, STATUS_CODE.FAILURE);
     }
 
     try {
       fs.writeSync(entry.handle.fd, data, 0, data.length, offset);
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.OK);
+      sftp.status(reqid, STATUS_CODE.OK);
     } catch {
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+      sftp.status(reqid, STATUS_CODE.FAILURE);
     }
   });
 
@@ -218,16 +232,16 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
   sftp.on('CLOSE', (reqid, handle) => {
     const key = hKey(handle);
     const entry = handles.get(key);
-    if (!entry) return sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+    if (!entry) return sftp.status(reqid, STATUS_CODE.FAILURE);
 
     try {
       if (entry.kind === 'file') {
         fs.closeSync(entry.handle.fd);
       }
       handles.delete(key);
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.OK);
+      sftp.status(reqid, STATUS_CODE.OK);
     } catch {
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+      sftp.status(reqid, STATUS_CODE.FAILURE);
     }
   });
 
@@ -235,13 +249,13 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
   sftp.on('STAT', (reqid, filename) => {
     let osPath: string;
     try { osPath = realPath(serverId, filename); }
-    catch { return sftp.status(reqid, SFTPWrapper.STATUS_CODE.PERMISSION_DENIED); }
+    catch { return sftp.status(reqid, STATUS_CODE.PERMISSION_DENIED); }
 
     try {
       const stat = fs.statSync(osPath);
       sftp.attrs(reqid, statToAttrs(stat));
     } catch {
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.NO_SUCH_FILE);
+      sftp.status(reqid, STATUS_CODE.NO_SUCH_FILE);
     }
   });
 
@@ -249,13 +263,13 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
   sftp.on('LSTAT', (reqid, filename) => {
     let osPath: string;
     try { osPath = realPath(serverId, filename); }
-    catch { return sftp.status(reqid, SFTPWrapper.STATUS_CODE.PERMISSION_DENIED); }
+    catch { return sftp.status(reqid, STATUS_CODE.PERMISSION_DENIED); }
 
     try {
       const stat = fs.lstatSync(osPath);
       sftp.attrs(reqid, statToAttrs(stat));
     } catch {
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.NO_SUCH_FILE);
+      sftp.status(reqid, STATUS_CODE.NO_SUCH_FILE);
     }
   });
 
@@ -263,13 +277,13 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
   sftp.on('FSTAT', (reqid, handle) => {
     const entry = handles.get(hKey(handle));
     if (!entry || entry.kind !== 'file') {
-      return sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+      return sftp.status(reqid, STATUS_CODE.FAILURE);
     }
     try {
       const stat = fs.fstatSync(entry.handle.fd);
       sftp.attrs(reqid, statToAttrs(stat));
     } catch {
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+      sftp.status(reqid, STATUS_CODE.FAILURE);
     }
   });
 
@@ -277,7 +291,7 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
   sftp.on('OPENDIR', (reqid, dirPath) => {
     let osPath: string;
     try { osPath = realPath(serverId, dirPath); }
-    catch { return sftp.status(reqid, SFTPWrapper.STATUS_CODE.PERMISSION_DENIED); }
+    catch { return sftp.status(reqid, STATUS_CODE.PERMISSION_DENIED); }
 
     try {
       const entries = fs.readdirSync(osPath, { withFileTypes: true });
@@ -288,7 +302,7 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
       });
       sftp.handle(reqid, handle);
     } catch {
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.NO_SUCH_FILE);
+      sftp.status(reqid, STATUS_CODE.NO_SUCH_FILE);
     }
   });
 
@@ -296,12 +310,12 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
   sftp.on('READDIR', (reqid, handle) => {
     const entry = handles.get(hKey(handle));
     if (!entry || entry.kind !== 'dir') {
-      return sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+      return sftp.status(reqid, STATUS_CODE.FAILURE);
     }
 
     const dir = entry.handle;
     if (dir.index >= dir.entries.length) {
-      return sftp.status(reqid, SFTPWrapper.STATUS_CODE.EOF);
+      return sftp.status(reqid, STATUS_CODE.EOF);
     }
 
     // Return up to 32 entries per READDIR call.
@@ -338,13 +352,13 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
   sftp.on('REMOVE', (reqid, filename) => {
     let osPath: string;
     try { osPath = realPath(serverId, filename); }
-    catch { return sftp.status(reqid, SFTPWrapper.STATUS_CODE.PERMISSION_DENIED); }
+    catch { return sftp.status(reqid, STATUS_CODE.PERMISSION_DENIED); }
 
     try {
       fs.unlinkSync(osPath);
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.OK);
+      sftp.status(reqid, STATUS_CODE.OK);
     } catch {
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+      sftp.status(reqid, STATUS_CODE.FAILURE);
     }
   });
 
@@ -352,13 +366,13 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
   sftp.on('RMDIR', (reqid, dirPath) => {
     let osPath: string;
     try { osPath = realPath(serverId, dirPath); }
-    catch { return sftp.status(reqid, SFTPWrapper.STATUS_CODE.PERMISSION_DENIED); }
+    catch { return sftp.status(reqid, STATUS_CODE.PERMISSION_DENIED); }
 
     try {
       fs.rmdirSync(osPath, { recursive: true });
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.OK);
+      sftp.status(reqid, STATUS_CODE.OK);
     } catch {
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+      sftp.status(reqid, STATUS_CODE.FAILURE);
     }
   });
 
@@ -366,13 +380,13 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
   sftp.on('MKDIR', (reqid, dirPath, _attrs) => {
     let osPath: string;
     try { osPath = realPath(serverId, dirPath); }
-    catch { return sftp.status(reqid, SFTPWrapper.STATUS_CODE.PERMISSION_DENIED); }
+    catch { return sftp.status(reqid, STATUS_CODE.PERMISSION_DENIED); }
 
     try {
       fs.mkdirSync(osPath, { recursive: true });
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.OK);
+      sftp.status(reqid, STATUS_CODE.OK);
     } catch {
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+      sftp.status(reqid, STATUS_CODE.FAILURE);
     }
   });
 
@@ -383,34 +397,34 @@ function handleSftpSession(serverId: string, sftp: SFTPWrapper): void {
       oldOs = realPath(serverId, oldPath);
       newOs = realPath(serverId, newPath);
     } catch {
-      return sftp.status(reqid, SFTPWrapper.STATUS_CODE.PERMISSION_DENIED);
+      return sftp.status(reqid, STATUS_CODE.PERMISSION_DENIED);
     }
 
     try {
       fs.renameSync(oldOs, newOs);
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.OK);
+      sftp.status(reqid, STATUS_CODE.OK);
     } catch {
-      sftp.status(reqid, SFTPWrapper.STATUS_CODE.FAILURE);
+      sftp.status(reqid, STATUS_CODE.FAILURE);
     }
   });
 
   // ── SETSTAT / FSETSTAT (no-op — accept silently) ─────────────────────────
-  sftp.on('SETSTAT', (reqid) => sftp.status(reqid, SFTPWrapper.STATUS_CODE.OK));
-  sftp.on('FSETSTAT', (reqid) => sftp.status(reqid, SFTPWrapper.STATUS_CODE.OK));
+  sftp.on('SETSTAT', (reqid) => sftp.status(reqid, STATUS_CODE.OK));
+  sftp.on('FSETSTAT', (reqid) => sftp.status(reqid, STATUS_CODE.OK));
 
   // ── SYMLINK / READLINK ────────────────────────────────────────────────────
   sftp.on('SYMLINK', (reqid) =>
-    sftp.status(reqid, SFTPWrapper.STATUS_CODE.OP_UNSUPPORTED),
+    sftp.status(reqid, STATUS_CODE.OP_UNSUPPORTED),
   );
   sftp.on('READLINK', (reqid) =>
-    sftp.status(reqid, SFTPWrapper.STATUS_CODE.OP_UNSUPPORTED),
+    sftp.status(reqid, STATUS_CODE.OP_UNSUPPORTED),
   );
 
   // ── REALPATH ──────────────────────────────────────────────────────────────
   sftp.on('REALPATH', (reqid, reqPath) => {
     const normalised = path.posix.normalize('/' + reqPath);
     sftp.name(reqid, [
-      { filename: normalised, longname: normalised, attrs: {} },
+      { filename: normalised, longname: normalised, attrs: {} as any },
     ]);
   });
 }
@@ -484,9 +498,4 @@ export function startSftpServer(): void {
   sshServer.listen(config.sftpPort, '0.0.0.0', () => {
     logger.info(`SFTP server listening on port ${config.sftpPort}`);
   });
-}
-
-// ─── Helper for use inside handleSftpSession ──────────────────────────────────
-function serverDataRoot(serverId: string): string {
-  return path.join(config.dataDir, 'servers', serverId, 'data');
 }
