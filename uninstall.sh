@@ -151,6 +151,8 @@ log_section "4. Removing UFW Firewall Rules"
 if command -v ufw &>/dev/null; then
   log_step "Deleting Arc Panel UFW port rules..."
   ufw delete allow 8080/tcp 2>/dev/null || true
+  ufw delete allow 8050/tcp 2>/dev/null || true
+  ufw delete allow 8090/tcp 2>/dev/null || true
   ufw delete allow 3001/tcp 2>/dev/null || true
   ufw delete allow 8085/tcp 2>/dev/null || true
   ufw delete allow 2022/tcp 2>/dev/null || true
