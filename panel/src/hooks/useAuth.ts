@@ -52,7 +52,7 @@ export const useAuth = create<AuthState>()(
           /* Successful login — store tokens */
           if (response.tokens && response.user) {
             const { tokens, user } = response;
-            persistTokensToStorage(tokens);
+            persistTokensToStorage(tokens, user);
             set({
               user,
               accessToken:  tokens.accessToken,
@@ -150,10 +150,15 @@ export const useAuth = create<AuthState>()(
 /* ── Helper functions ─────────────────────────────────────────────── */
 
 /** Persist tokens to raw localStorage keys (read by Axios interceptor) and cookies */
-function persistTokensToStorage(tokens: AuthTokens) {
+function persistTokensToStorage(tokens: AuthTokens, user?: User) {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem('arc_access_token',  tokens.accessToken);
   window.localStorage.setItem('arc_refresh_token', tokens.refreshToken);
+  if (user) {
+    try {
+      window.localStorage.setItem('arc_user', JSON.stringify(user));
+    } catch {}
+  }
   try {
     document.cookie = `arc_access_token=${tokens.accessToken}; path=/; max-age=604800; SameSite=Lax`;
   } catch {

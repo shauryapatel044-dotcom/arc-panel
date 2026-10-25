@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -53,34 +53,52 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   const user = useAuth((s) => s.user);
+  const accessToken = useAuth((s) => s.accessToken);
   const isHydrated = useAuth((s) => s.isHydrated);
-  const isAuthed = useAuth(selectIsAuthed);
   const isAdmin = useAuth(selectIsAdmin);
   const logout = useAuth((s) => s.logout);
+  const isAuthed = !!(user && accessToken);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Failsafe: guarantee hydration state is marked after mount
-    const timer = setTimeout(() => {
-      if (!isHydrated) {
-        useAuth.getState().setHydrated();
-      }
-    }, 400);
-    return () => clearTimeout(timer);
+    setMounted(true);
+    if (!isHydrated) {
+      useAuth.getState().setHydrated();
+    }
   }, [isHydrated]);
 
   useEffect(() => {
-    if (isHydrated && !isAuthed) {
-      router.replace('/login');
+    if (mounted && !isAuthed) {
+      const token =
+        typeof window !== 'undefined'
+          ? window.localStorage.getItem('arc_access_token')
+          : null;
+      if (!token) {
+        router.replace('/login');
+      }
     }
-  }, [isHydrated, isAuthed, router]);
+  }, [mounted, isAuthed, router]);
 
-  if (!isHydrated && !isAuthed) {
+  if (!mounted) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 backdrop-blur-xl">
           <Sparkles className="h-5 w-5 animate-spin text-arc-cyan-400" />
           <span className="text-sm font-medium text-white/80">
             Initializing Arc Panel Environment...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthed) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 backdrop-blur-xl">
+          <Sparkles className="h-5 w-5 animate-spin text-arc-cyan-400" />
+          <span className="text-sm font-medium text-white/80">
+            Redirecting to sign in...
           </span>
         </div>
       </div>

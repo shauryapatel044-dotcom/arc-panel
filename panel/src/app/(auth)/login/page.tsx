@@ -45,10 +45,24 @@ type ChangePassForm = z.infer<typeof changePassSchema>;
 /* ── Page ────────────────────────────────────────────────────────── */
 export default function LoginPage() {
   const router = useRouter();
-  const { login, user } = useAuth();
+  const user = useAuth((s) => s.user);
+  const accessToken = useAuth((s) => s.accessToken);
+  const login = useAuth((s) => s.login);
+  const isAuthed = !!(user && accessToken);
 
-  /* If already authed, go to dashboard */
-  useEffect(() => { if (user) router.replace('/dashboard'); }, [user, router]);
+  /* Clear orphaned user object if token is missing */
+  useEffect(() => {
+    if (user && !accessToken) {
+      useAuth.getState().logout();
+    }
+  }, [user, accessToken]);
+
+  /* If genuinely authenticated, go to dashboard */
+  useEffect(() => {
+    if (isAuthed) {
+      router.replace('/dashboard');
+    }
+  }, [isAuthed, router]);
 
   const [showPassword,  setShowPassword]  = useState(false);
   const [needs2FA,      setNeeds2FA]      = useState(false);

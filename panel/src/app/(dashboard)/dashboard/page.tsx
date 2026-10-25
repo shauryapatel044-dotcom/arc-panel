@@ -46,33 +46,33 @@ export default function ClientDashboardPage() {
         ? data
         : (data.servers ?? data.items ?? []);
 
-      const mapped: Server[] = rawList.map((srv) => {
-        const allocations = Array.isArray(srv.allocations)
+      const mapped: Server[] = (rawList || []).filter(Boolean).map((srv: any) => {
+        const allocations = Array.isArray(srv?.allocations)
           ? (srv.allocations as Server['allocations'])
           : [];
         return {
-          id: String(srv.id),
-          name: String(srv.name),
-          ownerId: String(srv.ownerId ?? ''),
-          owner: srv.owner as Server['owner'],
-          nodeId: String(srv.nodeId ?? ''),
-          node: srv.node as Server['node'],
-          status: String(srv.status ?? 'stopped').toLowerCase() as ServerStatus,
-          limits: (srv.limits as Server['limits']) ?? {
-            ramMB: Number(srv.memoryLimit ?? 2048),
-            cpuPct: Number(srv.cpuLimit ?? 100),
-            diskMB: Number(srv.diskLimit ?? 10240),
+          id: String(srv?.id ?? ''),
+          name: String(srv?.name ?? 'Server'),
+          ownerId: String(srv?.ownerId ?? ''),
+          owner: srv?.owner as Server['owner'],
+          nodeId: String(srv?.nodeId ?? ''),
+          node: srv?.node as Server['node'],
+          status: String(srv?.status ?? 'stopped').toLowerCase() as ServerStatus,
+          limits: (srv?.limits as Server['limits']) ?? {
+            ramMB: Number(srv?.memoryLimit ?? 2048),
+            cpuPct: Number(srv?.cpuLimit ?? 100),
+            diskMB: Number(srv?.diskLimit ?? 10240),
             swapMB: 512,
             ioWeight: 500,
           },
           allocation: allocations[0],
           allocations,
-          eggId: String(srv.image ?? srv.eggId ?? 'minecraft-java'),
-          eggName: String(srv.image ?? srv.eggName ?? 'Container'),
-          dockerImage: String(srv.dockerImage ?? ''),
+          eggId: String(srv?.image ?? srv?.eggId ?? 'minecraft-java'),
+          eggName: String(srv?.image ?? srv?.eggName ?? 'Container'),
+          dockerImage: String(srv?.dockerImage ?? ''),
           environment: {},
-          createdAt: String(srv.createdAt ?? new Date().toISOString()),
-          updatedAt: String(srv.updatedAt ?? new Date().toISOString()),
+          createdAt: String(srv?.createdAt ?? new Date().toISOString()),
+          updatedAt: String(srv?.updatedAt ?? new Date().toISOString()),
         };
       });
 
